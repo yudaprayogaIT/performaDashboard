@@ -1,3 +1,4 @@
+// src/app/(auth)/layout.tsx
 export default function AuthLayout({
   children,
 }: {
@@ -24,7 +25,7 @@ export default function AuthLayout({
               </span>
             </div>
             <span className="text-2xl font-bold tracking-tight">
-              Nexus Analytics
+              P<span className="text-[#B11F23]">e</span>rforma Dashboard
             </span>
           </div>
 
