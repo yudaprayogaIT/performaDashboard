@@ -220,7 +220,7 @@ export default function DashboardPage() {
       comparisonVsYesterday,
       comparisonVsLastWeek,
       comparisonVsLastMonth,
-    ]
+    ],
   );
 
   return (
@@ -253,66 +253,66 @@ export default function DashboardPage() {
           </div>
         </div>
 
-      {/* Summary Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatsCard
-          title="Total Sales 2026"
-          value={mockSummary.totalOmzet}
-          target={mockSummary.totalTarget}
-          percentage={mockSummary.totalPencapaian}
-          icon="payments"
-          variant="primary"
-        />
-        <StatsCard
-          title="Sales Local (Bogor)"
-          value={mockSummary.localOmzet}
-          target={mockSummary.localTarget}
-          percentage={mockSummary.localPencapaian}
-          icon="store"
-          variant="success"
-        />
-        <StatsCard
-          title="Sales Cabang"
-          value={mockSummary.cabangOmzet}
-          target={mockSummary.cabangTarget}
-          percentage={mockSummary.cabangPencapaian}
-          icon="storefront"
-          variant="default"
-        />
-      </div>
-
-      {/* Daily Comparison Cards */}
-      <div>
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">
-            timeline
-          </span>
-          Pertumbuhan Omzet Harian
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <ComparisonCard
-            title="Total Omzet Hari Ini"
-            comparisonLabel="vs Kemarin"
-            data={comparisonVsYesterday}
-            icon="calendar_today"
+        {/* Summary Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <StatsCard
+            title="Total Sales 2026"
+            value={mockSummary.totalOmzet}
+            target={mockSummary.totalTarget}
+            percentage={mockSummary.totalPencapaian}
+            icon="payments"
+            variant="primary"
           />
-          <ComparisonCard
-            title="Total Omzet"
-            comparisonLabel="vs Minggu Lalu"
-            data={comparisonVsLastWeek}
-            icon="date_range"
+          <StatsCard
+            title="Sales Local (Bogor)"
+            value={mockSummary.localOmzet}
+            target={mockSummary.localTarget}
+            percentage={mockSummary.localPencapaian}
+            icon="store"
+            variant="success"
           />
-          <ComparisonCard
-            title="Total Omzet"
-            comparisonLabel="vs Bulan Lalu"
-            data={comparisonVsLastMonth}
-            icon="calendar_month"
+          <StatsCard
+            title="Sales Cabang"
+            value={mockSummary.cabangOmzet}
+            target={mockSummary.cabangTarget}
+            percentage={mockSummary.cabangPencapaian}
+            icon="storefront"
+            variant="default"
           />
         </div>
-      </div>
 
-      {/* Comparison: Local vs Cabang Today */}
-      {/* <div>
+        {/* Daily Comparison Cards */}
+        <div>
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">
+              timeline
+            </span>
+            Pertumbuhan Omzet Harian
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ComparisonCard
+              title="Total Omzet Hari Ini"
+              comparisonLabel="vs Kemarin"
+              data={comparisonVsYesterday}
+              icon="calendar_today"
+            />
+            <ComparisonCard
+              title="Total Omzet"
+              comparisonLabel="vs Minggu Lalu"
+              data={comparisonVsLastWeek}
+              icon="date_range"
+            />
+            <ComparisonCard
+              title="Total Omzet"
+              comparisonLabel="vs Bulan Lalu"
+              data={comparisonVsLastMonth}
+              icon="calendar_month"
+            />
+          </div>
+        </div>
+
+        {/* Comparison: Local vs Cabang Today */}
+        {/* <div>
                 <h2 className="text-xl font-bold text-white mb-4">Pertumbuhan Local vs Cabang</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <ComparisonCard
@@ -330,42 +330,42 @@ export default function DashboardPage() {
                 </div>
             </div> */}
 
-      {/* Trend Charts */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary">
-              insights
-            </span>
-            Trend Penjualan
-          </h2>
-          <PeriodSelector
-            selectedPeriod={selectedPeriod}
-            onPeriodChange={setSelectedPeriod}
+        {/* Trend Charts */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">
+                insights
+              </span>
+              Trend Penjualan
+            </h2>
+            <PeriodSelector
+              selectedPeriod={selectedPeriod}
+              onPeriodChange={setSelectedPeriod}
+            />
+          </div>
+
+          {/* Overall Trend */}
+          <TrendChart
+            data={aggregatedData}
+            title={getChartTitle(selectedPeriod)}
+            showLocal={true}
+            showCabang={true}
+            showTotal={true}
           />
-        </div>
 
-        {/* Overall Trend */}
-        <TrendChart
-          data={aggregatedData}
-          title={getChartTitle(selectedPeriod)}
-          showLocal={true}
-          showCabang={true}
-          showTotal={true}
-        />
-
-        {/* Category Trends */}
-        {/* <CategoryTrendChart
+          {/* Category Trends */}
+          {/* <CategoryTrendChart
           data={mockDailyCategorySales}
           title="Trend Top 5 Categories (7 Hari Terakhir)"
           showLocal={true}
           showCabang={true}
           daysToShow={7}
         /> */}
-      </div>
+        </div>
 
-      {/* Category Performance Table */}
-      {/* <div className="space-y-4">
+        {/* Category Performance Table */}
+        {/* <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Sales by Category</h2>
           <div className="flex items-center gap-4 text-sm">
@@ -386,66 +386,66 @@ export default function DashboardPage() {
         <CategoryTable categories={mockCategories} />
       </div> */}
 
-      {/* Category Achievement by Location */}
-      <div className="space-y-6">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary">
-            donut_large
-          </span>
-          Achievement by Category
-        </h2>
+        {/* Category Achievement by Location */}
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">
+              donut_large
+            </span>
+            Achievement by Category
+          </h2>
 
-        {/* LOCAL Achievement */}
-        <CategoryAchievementPie
-          categories={mockCategories}
-          type="local"
-          title="LOCAL Achievement (Bogor & Sekitar)"
-        />
+          {/* LOCAL Achievement */}
+          <CategoryAchievementPie
+            categories={mockCategories}
+            type="local"
+            title="LOCAL Achievement (Bogor & Sekitar)"
+          />
 
-        {/* CABANG Achievement */}
-        <CategoryAchievementPie
-          categories={mockCategories}
-          type="cabang"
-          title="CABANG Achievement (Luar Bogor)"
-        />
+          {/* CABANG Achievement */}
+          <CategoryAchievementPie
+            categories={mockCategories}
+            type="cabang"
+            title="CABANG Achievement (Luar Bogor)"
+          />
+        </div>
+
+        {/* Quick Stats Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
+              Total Target
+            </p>
+            <p className="text-lg font-bold text-white">Rp 141T</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
+              Total Omzet
+            </p>
+            <p className="text-lg font-bold text-green-400">Rp 122.8T</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
+              Achievement
+            </p>
+            <p className="text-lg font-bold text-primary">87.13%</p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
+              Categories
+            </p>
+            <p className="text-lg font-bold text-white">17</p>
+          </div>
+        </div>
       </div>
 
-      {/* Quick Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
-            Total Target
-          </p>
-          <p className="text-lg font-bold text-white">Rp 141T</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
-            Total Omzet
-          </p>
-          <p className="text-lg font-bold text-green-400">Rp 122.8T</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
-            Achievement
-          </p>
-          <p className="text-lg font-bold text-primary">87.13%</p>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-          <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
-            Categories
-          </p>
-          <p className="text-lg font-bold text-white">17</p>
-        </div>
-      </div>
-    </div>
-
-    {/* Fullscreen Carousel Presentation Mode */}
-    <FullscreenCarousel
-      sections={carouselSections}
-      isActive={isPresentationMode}
-      onExit={handleExitPresentationMode}
-      autoPlayInterval={5000}
-    />
-  </>
+      {/* Fullscreen Carousel Presentation Mode */}
+      <FullscreenCarousel
+        sections={carouselSections}
+        isActive={isPresentationMode}
+        onExit={handleExitPresentationMode}
+        autoPlayInterval={5000}
+      />
+    </>
   );
 }

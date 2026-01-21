@@ -97,24 +97,22 @@ export default function FullscreenCarousel({
     >
       {/* Current Section */}
       <div className="h-full w-full overflow-y-auto">
-        <div className="min-h-full p-8">
-          {sections[currentSection]}
-        </div>
+        <div className="min-h-full p-8">{sections[currentSection]}</div>
       </div>
 
       {/* Controls Overlay */}
       <div className="absolute inset-0 pointer-events-none">
         {/* Top Bar - Exit & Status */}
         <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-black/50 to-transparent pointer-events-auto">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-end gap-3">
             <div className="flex items-center gap-3">
-              <button
+              {/* <button
                 onClick={onExit}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-sm"
               >
                 <span className="material-symbols-outlined">close</span>
                 <span className="text-sm font-medium">Exit Fullscreen</span>
-              </button>
+              </button> */}
 
               <button
                 onClick={() => setIsPaused(!isPaused)}
@@ -141,7 +139,7 @@ export default function FullscreenCarousel({
         </div>
 
         {/* Navigation Arrows */}
-        <button
+        {/* <button
           onClick={() => {
             goToPrev();
             setIsPaused(true);
@@ -165,7 +163,7 @@ export default function FullscreenCarousel({
           <span className="material-symbols-outlined text-3xl">
             chevron_right
           </span>
-        </button>
+        </button> */}
 
         {/* Bottom Bar - Indicators & Progress */}
         <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/50 to-transparent pointer-events-auto">
