@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 28, 21, 60;
+  --background-end-rgb: 26, 21, 58;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(30, 25, 60, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+  
+  .glass-input {
+    @apply bg-black/20 border border-white/5 transition-all duration-300;
+  }
+
+  .glass-input:focus-within {
+    @apply bg-black/30 border-primary/50 shadow-[0_0_0_2px_rgba(95,36,214,0.2)];
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
