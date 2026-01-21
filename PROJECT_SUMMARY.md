@@ -1,10 +1,10 @@
 # 📊 Sales Dashboard - Project Summary & Progress Report
 
-**Project Name**: SalesMonitor Pro Admin (Performa Dashboard)
+**Project Name**: Performa Dashboard
 **Purpose**: Sales performance tracking dashboard untuk LOCAL (Bogor & sekitar) dan CABANG (luar Bogor)
 **Tech Stack**: Next.js 15 + TypeScript + Tailwind CSS + MySQL + Prisma 6
 **Created**: January 2026
-**Last Updated**: January 21, 2026
+**Last Updated**: January 21, 2026 (v0.3.0)
 
 ---
 
@@ -13,9 +13,11 @@
 Dashboard untuk monitoring penjualan dengan fitur:
 
 - **Multi-location tracking**: LOCAL (Bogor area) vs CABANG (luar Bogor)
-- **Category-based analysis**: 17 product categories
+- **Category-based analysis**: 17 product categories dengan visual achievement indicators
 - **Time-series trends**: Daily, Weekly, Monthly, Quarterly, Semester, Yearly
 - **Target tracking**: Monthly/yearly targets dengan achievement percentage
+- **Category achievement visualization**: Circular progress cards untuk setiap kategori dengan color coding
+- **Presentation mode**: Fullscreen auto-carousel untuk presentasi (auto-slide setiap 5 detik)
 - **Excel upload**: Bulk upload sales data dari Excel files
 - **Role-based access**: Admin, Direktur, Manager, Uploader roles
 - **Authentication**: JWT-based authentication dengan cookie storage
@@ -106,13 +108,16 @@ Dashboard untuk monitoring penjualan dengan fitur:
 │   │   │   └── confirm-modal.tsx  # ✅ Confirmation modal component
 │   │   │
 │   │   ├── dashboard/
-│   │   │   ├── stats-card.tsx              # ✅ Summary cards
-│   │   │   ├── category-table.tsx          # ✅ Category performance table
-│   │   │   ├── month-filter.tsx            # ✅ Month/Year selector
-│   │   │   ├── period-selector.tsx         # ✅ Period toggle (daily/weekly/etc)
-│   │   │   ├── comparison-card.tsx         # ✅ vs Yesterday/Week/Month
-│   │   │   ├── trend-chart.tsx             # ✅ Line chart (Recharts)
-│   │   │   └── category-trend-chart.tsx    # ✅ Bar chart (Recharts)
+│   │   │   ├── stats-card.tsx                  # ✅ Summary cards
+│   │   │   ├── category-table.tsx              # ✅ Category performance table
+│   │   │   ├── month-filter.tsx                # ✅ Month/Year selector
+│   │   │   ├── period-selector.tsx             # ✅ Period toggle (daily/weekly/etc)
+│   │   │   ├── comparison-card.tsx             # ✅ vs Yesterday/Week/Month
+│   │   │   ├── trend-chart.tsx                 # ✅ Line chart (Recharts)
+│   │   │   ├── category-trend-chart.tsx        # ✅ Bar chart (Recharts)
+│   │   │   ├── category-achievement-pie.tsx    # ✅ Grid layout for category achievement
+│   │   │   ├── category-achievement-card.tsx   # ✅ Circular progress per category
+│   │   │   └── fullscreen-carousel.tsx         # ✅ Presentation mode carousel
 │   │   │
 │   │   ├── upload/
 │   │   │   ├── file-uploader.tsx           # ✅ Drag & drop uploader
@@ -122,7 +127,8 @@ Dashboard untuk monitoring penjualan dengan fitur:
 │   │       └── login-form.tsx              # ✅ Login form with loading/error states
 │   │
 │   ├── hooks/
-│   │   └── useAuth.ts             # ✅ Authentication hook
+│   │   ├── useAuth.ts             # ✅ Authentication hook
+│   │   └── useFullscreen.ts       # ✅ Fullscreen API hook
 │   │
 │   ├── lib/
 │   │   ├── prisma.ts              # ✅ Prisma client singleton
@@ -442,9 +448,21 @@ settings.users, settings.roles, settings.categories, settings.locations, setting
 - 3 Summary Cards: Total Sales, Sales Local, Sales Cabang
 - 4 Quick Stats: Total Target, Total Omzet, Achievement %, Categories
 - Period Selector: Daily/Weekly/Monthly/Quarterly/Semester/Yearly
-- 5 Comparison Cards: vs Kemarin, vs Minggu Lalu, vs Bulan Lalu
-- 2 Interactive Charts: Line Chart (Trend), Bar Chart (Categories)
-- Category Performance Table
+- 3 Comparison Cards: vs Kemarin, vs Minggu Lalu, vs Bulan Lalu
+- Interactive Charts: Line Chart (Trend Penjualan)
+- **Category Achievement Visualization**:
+  - Grid layout dengan 17 kategori cards
+  - Circular progress donut chart per kategori
+  - Color coding: Red (<50%), Yellow (50-75%), Green (75-100%+)
+  - Display untuk LOCAL dan CABANG terpisah
+  - Summary stats (Good/Average/Low counts)
+- **Presentation Mode** 🎉:
+  - Fullscreen button di header
+  - Auto-carousel dengan 5 sections
+  - Auto-slide setiap 5 detik
+  - Manual navigation (keyboard & arrows)
+  - Pause/Resume functionality
+  - Perfect untuk presentasi ke management
 - Month/Year Filter
 
 ### **3. Upload Page** (`/upload`) - ⚠️ UI Only
@@ -495,6 +513,9 @@ settings.users, settings.roles, settings.categories, settings.locations, setting
 | CategoryTrendChart | `dashboard/category-trend-chart.tsx` | Bar chart |
 | MonthFilter | `dashboard/month-filter.tsx` | Month/Year dropdown |
 | PeriodSelector | `dashboard/period-selector.tsx` | Period toggle buttons |
+| CategoryAchievementPie | `dashboard/category-achievement-pie.tsx` | Grid container for category achievement cards |
+| CategoryAchievementCard | `dashboard/category-achievement-card.tsx` | Circular donut progress per category with color coding |
+| FullscreenCarousel | `dashboard/fullscreen-carousel.tsx` | Presentation mode auto-carousel with controls |
 
 ### **Form Components**
 
@@ -509,17 +530,29 @@ settings.users, settings.roles, settings.categories, settings.locations, setting
 ## 🪝 Custom Hooks
 
 ### **useAuth** (`src/hooks/useAuth.ts`)
-```typescriptconst {
-user,           // Current user data
-isLoading,      // Loading state
-isAuthenticated,// Auth status
-logout,         // Logout function
-refetch,        // Refetch user data
-getInitials,    // Get user initials (e.g., "AU")
-getPrimaryRole, // Get first role
-hasPermission,  // Check permission
-hasRole,        // Check role
+```typescript
+const {
+  user,           // Current user data
+  isLoading,      // Loading state
+  isAuthenticated,// Auth status
+  logout,         // Logout function
+  refetch,        // Refetch user data
+  getInitials,    // Get user initials (e.g., "AU")
+  getPrimaryRole, // Get first role
+  hasPermission,  // Check permission
+  hasRole,        // Check role
 } = useAuth();
+```
+
+### **useFullscreen** (`src/hooks/useFullscreen.ts`)
+```typescript
+const {
+  isFullscreen,      // Current fullscreen state
+  enterFullscreen,   // Enter fullscreen mode
+  exitFullscreen,    // Exit fullscreen mode
+  toggleFullscreen,  // Toggle fullscreen on/off
+} = useFullscreen();
+```
 
 ---
 
@@ -567,9 +600,12 @@ npm run db:studio    # Open Prisma Studio (DB GUI)
 ### **Frontend:**
 - ✅ Login page dengan API integration
 - ✅ Dashboard overview dengan interactive charts
+- ✅ Category Achievement Visualization dengan circular progress cards
+- ✅ Presentation Mode (Fullscreen Carousel) dengan auto-slide
 - ✅ Sidebar dengan user info & logout modal
 - ✅ Reusable Modal components
 - ✅ useAuth hook untuk auth state management
+- ✅ useFullscreen hook untuk presentation mode
 - ✅ Settings > Branches CRUD page
 - ✅ Upload page UI
 
@@ -628,8 +664,16 @@ npm run db:studio    # Open Prisma Studio (DB GUI)
 | Database Schema | 100% | ✅ Complete |
 | Authentication | 100% | ✅ Complete |
 | Backend API | 40% | ⚠️ In Progress |
-| Frontend UI | 65% | ⚠️ In Progress |
-| **Overall** | **~55%** | 🚧 Active Development |
+| Frontend UI | 75% | ⚠️ In Progress |
+| Data Visualization | 80% | ⚠️ In Progress |
+| **Overall** | **~62%** | 🚧 Active Development |
+
+### **Recent Updates (v0.3.0 - January 21, 2026)**
+- ✅ Added Category Achievement Visualization (circular progress cards)
+- ✅ Implemented Presentation Mode with fullscreen auto-carousel
+- ✅ Color-coded achievement indicators (Red/Yellow/Green)
+- ✅ 5-section carousel with auto-slide every 5 seconds
+- ✅ Keyboard controls and manual navigation for presentations
 
 ---
 
@@ -650,6 +694,6 @@ JWT_EXPIRES_IN="7d"
 ---
 
 **Last Updated**: January 21, 2026
-**Version**: 0.2.0
+**Version**: 0.3.0
 **Status**: Active Development 🚧
 ````

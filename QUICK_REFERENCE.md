@@ -36,6 +36,22 @@ Prisma Studio:    http://localhost:5555
 phpMyAdmin:       http://localhost/phpmyadmin
 ```
 
+## 🎯 New Features (v0.3.0)
+
+### **Presentation Mode**
+
+- Click "Presentation Mode" button di dashboard header
+- Auto-carousel dengan 5 sections, auto-slide setiap 5 detik
+- Keyboard shortcuts: ← → (navigate), P (pause), ESC (exit)
+- Manual navigation dengan arrow buttons
+
+### **Category Achievement Visualization**
+
+- Grid layout 17 kategori cards dengan circular progress
+- Color coding: 🔴 Red (<50%), 🟡 Yellow (50-75%), 🟢 Green (75-100%+)
+- Terpisah untuk LOCAL dan CABANG
+- Summary stats: Good/Average/Low counts
+
 ---
 
 ## 🔌 API Endpoints
@@ -129,9 +145,13 @@ import StatsCard from "@/components/dashboard/stats-card";
 import ComparisonCard from "@/components/dashboard/comparison-card";
 import CategoryTable from "@/components/dashboard/category-table";
 import TrendChart from "@/components/dashboard/trend-chart";
+import CategoryAchievementPie from "@/components/dashboard/category-achievement-pie";
+import CategoryAchievementCard from "@/components/dashboard/category-achievement-card";
+import FullscreenCarousel from "@/components/dashboard/fullscreen-carousel";
 
 // Hooks
 import { useAuth } from "@/hooks/useAuth";
+import { useFullscreen } from "@/hooks/useFullscreen";
 
 // Utils
 import { cn, formatCurrency, formatPercentage } from "@/lib/utils";
@@ -157,6 +177,53 @@ if (hasPermission("settings.users")) {
 if (hasRole("Super Admin")) {
   // Is super admin
 }
+```
+
+### **Using useFullscreen Hook**
+
+```typescript
+const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen();
+
+// Toggle fullscreen
+const handleEnterPresentation = async () => {
+  await toggleFullscreen();
+  // Your logic here
+};
+
+// Exit fullscreen
+const handleExit = async () => {
+  await exitFullscreen();
+};
+```
+
+### **Category Achievement Visualization**
+
+```typescript
+import CategoryAchievementPie from "@/components/dashboard/category-achievement-pie";
+
+<CategoryAchievementPie
+  categories={mockCategories}
+  type="local" // or "cabang"
+  title="LOCAL Achievement (Bogor & Sekitar)"
+/>
+```
+
+### **Fullscreen Carousel (Presentation Mode)**
+
+```typescript
+import FullscreenCarousel from "@/components/dashboard/fullscreen-carousel";
+
+const sections = [
+  <div key="section1">Section 1 Content</div>,
+  <div key="section2">Section 2 Content</div>,
+];
+
+<FullscreenCarousel
+  sections={sections}
+  isActive={isPresentationMode}
+  onExit={handleExitPresentationMode}
+  autoPlayInterval={5000} // 5 seconds
+/>
 ```
 
 ### **Protected API Route Template**
@@ -341,8 +408,17 @@ Uploader:
 - Database: ✅ 100%
 - Authentication: ✅ 100%
 - Backend API: ⚠️ 40%
-- Frontend UI: ⚠️ 65%
-- **Overall: ~55%**
+- Frontend UI: ⚠️ 75%
+- Data Visualization: ⚠️ 80%
+- **Overall: ~62%**
+
+### **v0.3.0 Updates (January 21, 2026)**
+
+- ✅ Category Achievement Visualization
+- ✅ Presentation Mode (Fullscreen Carousel)
+- ✅ Color-coded achievement indicators
+- ✅ Auto-slide every 5 seconds
+- ✅ Keyboard controls for presentations
 
 ---
 
