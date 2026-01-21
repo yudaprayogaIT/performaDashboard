@@ -118,6 +118,40 @@ export const calculateComparison = (
     };
 };
 
+// Calculate period comparison (sum last N days vs previous N days)
+export const calculatePeriodComparison = (
+    data: DailySales[],
+    field: keyof Pick<DailySales, 'local' | 'cabang' | 'total'>,
+    periodDays: number
+): ComparisonData => {
+    if (data.length < periodDays * 2) {
+        return {
+            current: 0,
+            previous: 0,
+            difference: 0,
+            percentageChange: 0,
+        };
+    }
+
+    // Current period: last N days
+    const currentPeriod = data.slice(-periodDays);
+    const current = currentPeriod.reduce((sum, day) => sum + day[field], 0);
+
+    // Previous period: N days before the current period
+    const previousPeriod = data.slice(-periodDays * 2, -periodDays);
+    const previous = previousPeriod.reduce((sum, day) => sum + day[field], 0);
+
+    const difference = current - previous;
+    const percentageChange = previous !== 0 ? (difference / previous) * 100 : 0;
+
+    return {
+        current,
+        previous,
+        difference,
+        percentageChange,
+    };
+};
+
 // Mock data instances
 export const mockDailySales = generateDailySalesData(30);
 export const mockDailyCategorySales = generateDailyCategorySales(30);

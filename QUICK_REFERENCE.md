@@ -41,9 +41,10 @@ phpMyAdmin:       http://localhost/phpmyadmin
 ### **Presentation Mode**
 
 - Click "Presentation Mode" button di dashboard header
-- Auto-carousel dengan 5 sections, auto-slide setiap 5 detik
+- Auto-carousel dengan 7 sections, auto-slide setiap 5 detik
 - Keyboard shortcuts: ← → (navigate), P (pause), ESC (exit)
-- Manual navigation dengan arrow buttons
+- Manual navigation dengan dot indicators
+- Achievement sections split into 2 pages (no scrolling needed)
 
 ### **Category Achievement Visualization**
 

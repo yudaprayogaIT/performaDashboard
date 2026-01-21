@@ -96,7 +96,7 @@ export default function FullscreenCarousel({
       className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 z-50 overflow-hidden"
     >
       {/* Current Section */}
-      <div className="h-full w-full overflow-y-auto">
+      <div className="h-full w-full overflow-y-hidden">
         <div className="min-h-full p-8">{sections[currentSection]}</div>
       </div>
 

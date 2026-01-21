@@ -45,23 +45,44 @@ export default function CategoryAchievementPie({
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-6">
       {/* Header */}
-      <div className="mb-6">
-        <h3 className="text-lg font-bold text-white mb-3">{title}</h3>
-        <div className="flex items-center gap-4 text-xs flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-red-500"></div>
-            <span className="text-white/60">&lt; 50% (Low)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-yellow-500"></div>
-            <span className="text-white/60">50-75% (Average)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded bg-green-500"></div>
-            <span className="text-white/60">75-100%+ (Good)</span>
+      {title && (
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-white mb-3">{title}</h3>
+          <div className="flex items-center gap-4 text-xs flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-red-500"></div>
+              <span className="text-white/60">&lt; 50% (Low)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-yellow-500"></div>
+              <span className="text-white/60">50-75% (Average)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-green-500"></div>
+              <span className="text-white/60">75-100%+ (Good)</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {!title && (
+        <div className="mb-6">
+          <div className="flex items-center gap-4 text-xs flex-wrap">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-red-500"></div>
+              <span className="text-white/60">&lt; 50% (Low)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-yellow-500"></div>
+              <span className="text-white/60">50-75% (Average)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-green-500"></div>
+              <span className="text-white/60">75-100%+ (Good)</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Achievement Summary Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">

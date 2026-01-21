@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import StatsCard from "@/components/dashboard/stats-card";
 import CategoryTable from "@/components/dashboard/category-table";
 import MonthFilter from "@/components/dashboard/month-filter";
@@ -18,6 +18,7 @@ import {
   generateDailySalesData,
   mockDailyCategorySales,
   calculateComparison,
+  calculatePeriodComparison,
 } from "@/lib/mock-data-daily";
 import {
   aggregateDataByPeriod,
@@ -32,6 +33,13 @@ export default function DashboardPage() {
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen();
 
+  // Auto-exit presentation mode when fullscreen is exited (e.g., via ESC key)
+  useEffect(() => {
+    if (!isFullscreen && isPresentationMode) {
+      setIsPresentationMode(false);
+    }
+  }, [isFullscreen, isPresentationMode]);
+
   // Generate data based on selected period range
   const rawDailySales = useMemo(() => {
     const daysNeeded = getDataRangeForPeriod(selectedPeriod);
@@ -43,14 +51,45 @@ export default function DashboardPage() {
     return aggregateDataByPeriod(rawDailySales, selectedPeriod);
   }, [rawDailySales, selectedPeriod]);
 
-  // Calculate comparisons (always use last 30 days for comparison)
-  const mockDailySales = useMemo(() => generateDailySalesData(30), []);
-  const comparisonVsYesterday = calculateComparison(mockDailySales, "total", 1);
-  const comparisonVsLastWeek = calculateComparison(mockDailySales, "total", 7);
-  const comparisonVsLastMonth = calculateComparison(
+  // Calculate comparisons (generate enough data for all periods: 730 days = 2 years)
+  const mockDailySales = useMemo(() => generateDailySalesData(730), []);
+
+  // Daily comparison (today vs yesterday)
+  const comparisonDaily = calculateComparison(mockDailySales, "total", 1);
+
+  // Weekly comparison (last 7 days vs previous 7 days)
+  const comparisonWeekly = calculatePeriodComparison(
+    mockDailySales,
+    "total",
+    7,
+  );
+
+  // Monthly comparison (last 30 days vs previous 30 days)
+  const comparisonMonthly = calculatePeriodComparison(
     mockDailySales,
     "total",
     30,
+  );
+
+  // Quarterly comparison (last 90 days vs previous 90 days)
+  const comparisonQuarterly = calculatePeriodComparison(
+    mockDailySales,
+    "total",
+    90,
+  );
+
+  // Semester comparison (last 180 days vs previous 180 days)
+  const comparisonSemester = calculatePeriodComparison(
+    mockDailySales,
+    "total",
+    180,
+  );
+
+  // Yearly comparison (last 365 days vs previous 365 days)
+  const comparisonYearly = calculatePeriodComparison(
+    mockDailySales,
+    "total",
+    365,
   );
 
   const comparisonLocalVsYesterday = calculateComparison(
@@ -143,34 +182,52 @@ export default function DashboardPage() {
         </div>
       </div>,
 
-      // Section 2: Daily Growth Comparison
+      // Section 2: Multi-Period Growth Comparison
       <div key="comparison" className="space-y-6">
         <div>
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
             <span className="material-symbols-outlined text-primary text-5xl">
               timeline
             </span>
-            Pertumbuhan Omzet Harian
+            Pertumbuhan Omzet
           </h1>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <ComparisonCard
             title="Total Omzet Hari Ini"
             comparisonLabel="vs Kemarin"
-            data={comparisonVsYesterday}
+            data={comparisonDaily}
             icon="calendar_today"
           />
           <ComparisonCard
-            title="Total Omzet"
+            title="Total Omzet Minggu Ini"
             comparisonLabel="vs Minggu Lalu"
-            data={comparisonVsLastWeek}
+            data={comparisonWeekly}
             icon="date_range"
           />
           <ComparisonCard
-            title="Total Omzet"
+            title="Total Omzet Bulan Ini"
             comparisonLabel="vs Bulan Lalu"
-            data={comparisonVsLastMonth}
+            data={comparisonMonthly}
             icon="calendar_month"
+          />
+          <ComparisonCard
+            title="Total Omzet Triwulan Ini"
+            comparisonLabel="vs Triwulan Lalu"
+            data={comparisonQuarterly}
+            icon="event_note"
+          />
+          <ComparisonCard
+            title="Total Omzet Semester Ini"
+            comparisonLabel="vs Semester Lalu"
+            data={comparisonSemester}
+            icon="calendar_view_month"
+          />
+          <ComparisonCard
+            title="Total Omzet Tahun Ini"
+            comparisonLabel="vs Tahun Lalu"
+            data={comparisonYearly}
+            icon="date_range"
           />
         </div>
       </div>,
@@ -194,21 +251,59 @@ export default function DashboardPage() {
         />
       </div>,
 
-      // Section 4: LOCAL Achievement
-      <div key="local-achievement" className="space-y-6">
+      // Section 4: LOCAL Achievement (Part 1/2)
+      <div key="local-achievement-1" className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            LOCAL Achievement (Bogor & Sekitar) - 1/2
+          </h1>
+        </div>
         <CategoryAchievementPie
-          categories={mockCategories}
+          categories={mockCategories.slice(0, 9)}
           type="local"
-          title="LOCAL Achievement (Bogor & Sekitar)"
+          title=""
         />
       </div>,
 
-      // Section 5: CABANG Achievement
-      <div key="cabang-achievement" className="space-y-6">
+      // Section 5: LOCAL Achievement (Part 2/2)
+      <div key="local-achievement-2" className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            LOCAL Achievement (Bogor & Sekitar) - 2/2
+          </h1>
+        </div>
         <CategoryAchievementPie
-          categories={mockCategories}
+          categories={mockCategories.slice(9)}
+          type="local"
+          title=""
+        />
+      </div>,
+
+      // Section 6: CABANG Achievement (Part 1/2)
+      <div key="cabang-achievement-1" className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            CABANG Achievement (Luar Bogor) - 1/2
+          </h1>
+        </div>
+        <CategoryAchievementPie
+          categories={mockCategories.slice(0, 9)}
           type="cabang"
-          title="CABANG Achievement (Luar Bogor)"
+          title=""
+        />
+      </div>,
+
+      // Section 7: CABANG Achievement (Part 2/2)
+      <div key="cabang-achievement-2" className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            CABANG Achievement (Luar Bogor) - 2/2
+          </h1>
+        </div>
+        <CategoryAchievementPie
+          categories={mockCategories.slice(9)}
+          type="cabang"
+          title=""
         />
       </div>,
     ],
@@ -217,9 +312,12 @@ export default function DashboardPage() {
       selectedPeriod,
       selectedMonth,
       selectedYear,
-      comparisonVsYesterday,
-      comparisonVsLastWeek,
-      comparisonVsLastMonth,
+      comparisonDaily,
+      comparisonWeekly,
+      comparisonMonthly,
+      comparisonQuarterly,
+      comparisonSemester,
+      comparisonYearly,
     ],
   );
 
@@ -281,32 +379,50 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Daily Comparison Cards */}
+        {/* Multi-Period Comparison Cards */}
         <div>
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">
               timeline
             </span>
-            Pertumbuhan Omzet Harian
+            Pertumbuhan Omzet
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ComparisonCard
               title="Total Omzet Hari Ini"
               comparisonLabel="vs Kemarin"
-              data={comparisonVsYesterday}
+              data={comparisonDaily}
               icon="calendar_today"
             />
             <ComparisonCard
-              title="Total Omzet"
+              title="Total Omzet Minggu Ini"
               comparisonLabel="vs Minggu Lalu"
-              data={comparisonVsLastWeek}
+              data={comparisonWeekly}
               icon="date_range"
             />
             <ComparisonCard
-              title="Total Omzet"
+              title="Total Omzet Bulan Ini"
               comparisonLabel="vs Bulan Lalu"
-              data={comparisonVsLastMonth}
+              data={comparisonMonthly}
               icon="calendar_month"
+            />
+            <ComparisonCard
+              title="Total Omzet Triwulan Ini"
+              comparisonLabel="vs Triwulan Lalu"
+              data={comparisonQuarterly}
+              icon="event_note"
+            />
+            <ComparisonCard
+              title="Total Omzet Semester Ini"
+              comparisonLabel="vs Semester Lalu"
+              data={comparisonSemester}
+              icon="calendar_view_month"
+            />
+            <ComparisonCard
+              title="Total Omzet Tahun Ini"
+              comparisonLabel="vs Tahun Lalu"
+              data={comparisonYearly}
+              icon="date_range"
             />
           </div>
         </div>
@@ -445,6 +561,7 @@ export default function DashboardPage() {
         isActive={isPresentationMode}
         onExit={handleExitPresentationMode}
         autoPlayInterval={5000}
+        
       />
     </>
   );
