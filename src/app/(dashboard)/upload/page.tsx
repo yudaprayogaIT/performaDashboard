@@ -31,15 +31,29 @@ export default function UploadPage() {
     return (
         <div className="space-y-6">
             {/* Page Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-white">Upload Sales Data</h1>
-                <p className="text-white/60 mt-1">
-                    Import your weekly sales reports. Ensure columns match the{" "}
-                    <span className="text-primary underline cursor-pointer decoration-dotted">
-                        Master Template
-                    </span>{" "}
-                    before proceeding.
-                </p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-white">Upload Sales Data</h1>
+                    <p className="text-white/60 mt-1">
+                        Import your weekly sales reports. Ensure columns match the{" "}
+                        <a
+                            href="/templates/template_upload_penjualan.xlsx"
+                            download
+                            className="text-primary underline decoration-dotted hover:text-primary-light transition-colors"
+                        >
+                            Master Template
+                        </a>{" "}
+                        before proceeding.
+                    </p>
+                </div>
+                <a
+                    href="/templates/template_upload_penjualan.xlsx"
+                    download
+                    className="flex items-center gap-2 bg-teal-accent/20 hover:bg-teal-accent/30 text-teal-accent font-bold py-3 px-6 rounded-xl border border-teal-accent/30 transition-all hover:scale-[1.02] active:scale-95 whitespace-nowrap"
+                >
+                    <span className="material-symbols-outlined">download</span>
+                    <span>Download Template</span>
+                </a>
             </div>
 
             {/* Main Content Grid */}
@@ -54,36 +68,40 @@ export default function UploadPage() {
                     <div>
                         <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                             <span className="material-symbols-outlined text-teal-accent">lightbulb</span>
-                            Quick Tips
+                            Panduan Upload
                         </h4>
                         <ul className="space-y-4">
                             <li className="flex items-start gap-3 text-sm text-white/70">
-                                <span className="h-1.5 w-1.5 rounded-full bg-white/30 mt-2 shrink-0"></span>
-                                Check for duplicate Transaction IDs in your sheet.
+                                <span className="h-1.5 w-1.5 rounded-full bg-teal-accent mt-2 shrink-0"></span>
+                                Download template Excel terlebih dahulu.
                             </li>
                             <li className="flex items-start gap-3 text-sm text-white/70">
-                                <span className="h-1.5 w-1.5 rounded-full bg-white/30 mt-2 shrink-0"></span>
-                                Dates must be formatted as YYYY-MM-DD.
+                                <span className="h-1.5 w-1.5 rounded-full bg-teal-accent mt-2 shrink-0"></span>
+                                Format tanggal: <strong>YYYY-MM-DD</strong> (contoh: 2026-01-21)
                             </li>
                             <li className="flex items-start gap-3 text-sm text-white/70">
-                                <span className="h-1.5 w-1.5 rounded-full bg-white/30 mt-2 shrink-0"></span>
-                                Ensure Category & Lokasi match the Master Data.
+                                <span className="h-1.5 w-1.5 rounded-full bg-teal-accent mt-2 shrink-0"></span>
+                                Gunakan kode lokasi dari sheet &quot;Referensi Lokasi&quot;.
                             </li>
                             <li className="flex items-start gap-3 text-sm text-white/70">
-                                <span className="h-1.5 w-1.5 rounded-full bg-white/30 mt-2 shrink-0"></span>
-                                Lokasi: <strong>LOCAL</strong> (Bogor) or <strong>CABANG</strong> (Luar Bogor).
+                                <span className="h-1.5 w-1.5 rounded-full bg-teal-accent mt-2 shrink-0"></span>
+                                Gunakan nama kategori dari sheet &quot;Referensi Kategori&quot;.
+                            </li>
+                            <li className="flex items-start gap-3 text-sm text-white/70">
+                                <span className="h-1.5 w-1.5 rounded-full bg-teal-accent mt-2 shrink-0"></span>
+                                Kolom wajib: <strong>tanggal, kode_lokasi, kategori, amount</strong>
                             </li>
                         </ul>
                     </div>
                     <div className="bg-primary/20 rounded-xl p-4 border border-primary/30">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-primary uppercase">Uploaded 2026</span>
-                            <span className="text-xs font-bold text-white">70%</span>
-                        </div>
-                        <div className="w-full bg-gray-700/50 rounded-full h-2">
-                            <div className="bg-primary h-2 rounded-full" style={{ width: "70%" }}></div>
-                        </div>
-                        <p className="text-xs text-white/50 mt-2">10 of 12 months uploaded</p>
+                        <h5 className="text-xs font-bold text-primary uppercase mb-2">Template Contents</h5>
+                        <ul className="space-y-1 text-xs text-white/60">
+                            <li>• Sheet 1: Petunjuk Pengisian</li>
+                            <li>• Sheet 2: Data Penjualan (Sample)</li>
+                            <li>• Sheet 3: Referensi Lokasi (15 lokasi)</li>
+                            <li>• Sheet 4: Referensi Kategori (17 kategori)</li>
+                            <li>• Sheet 5: Template Kosong</li>
+                        </ul>
                     </div>
                 </div>
             </div>

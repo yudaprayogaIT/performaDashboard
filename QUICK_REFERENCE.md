@@ -36,15 +36,41 @@ Prisma Studio:    http://localhost:5555
 phpMyAdmin:       http://localhost/phpmyadmin
 ```
 
-## 🎯 New Features (v0.3.0)
+## 🎯 New Features (v0.3.2)
 
 ### **Presentation Mode**
 
 - Click "Presentation Mode" button di dashboard header
 - Auto-carousel dengan 7 sections, auto-slide setiap 5 detik
+- Sections: Summary, Multi-Period Comparison, Trends, LOCAL 1/2, LOCAL 2/2, CABANG 1/2, CABANG 2/2
 - Keyboard shortcuts: ← → (navigate), P (pause), ESC (exit)
+- ESC key exits immediately - no double press needed ✅
+- **Pause functionality fixed** - manual pause tidak terganggu auto-resume ✅
 - Manual navigation dengan dot indicators
 - Achievement sections split into 2 pages (no scrolling needed)
+
+### **Multi-Period Growth Comparisons (Calendar-Based)**
+
+- 6 comparison cards: Daily, Weekly, Monthly, Quarterly, Semester, Yearly
+- **Calendar-based comparisons** (bukan rolling days):
+  - Weekly: Senin-Minggu vs Senin-Minggu sebelumnya
+  - Monthly: Tanggal 1 - akhir bulan vs bulan sebelumnya
+  - Quarterly: Q1 (Jan-Mar), Q2 (Apr-Jun), Q3 (Jul-Sep), Q4 (Oct-Dec)
+  - Semester: S1 (Jan-Jun), S2 (Jul-Dec)
+  - Yearly: Jan-Dec vs tahun sebelumnya
+- Perfect untuk analisis trend dan pengambilan keputusan
+
+### **Excel Template**
+
+- Download template di halaman Upload
+- **Template Contents:**
+  - Sheet 1: Petunjuk Pengisian
+  - Sheet 2: Data Penjualan (30 hari sample)
+  - Sheet 3: Referensi Lokasi (15 lokasi)
+  - Sheet 4: Referensi Kategori (17 kategori)
+  - Sheet 5: Template Kosong
+- Regenerate: `npm run generate:template`
+- URL: `/templates/template_upload_penjualan.xlsx`
 
 ### **Category Achievement Visualization**
 
@@ -188,13 +214,21 @@ const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen();
 // Toggle fullscreen
 const handleEnterPresentation = async () => {
   await toggleFullscreen();
-  // Your logic here
+  setIsPresentationMode(true);
 };
 
 // Exit fullscreen
 const handleExit = async () => {
+  setIsPresentationMode(false);
   await exitFullscreen();
 };
+
+// Auto-exit presentation when fullscreen exits (e.g., ESC key)
+useEffect(() => {
+  if (!isFullscreen && isPresentationMode) {
+    setIsPresentationMode(false);
+  }
+}, [isFullscreen, isPresentationMode]);
 ```
 
 ### **Category Achievement Visualization**
@@ -225,6 +259,37 @@ const sections = [
   onExit={handleExitPresentationMode}
   autoPlayInterval={5000} // 5 seconds
 />
+```
+
+### **Multi-Period Comparison Calculations (Calendar-Based)**
+
+```typescript
+import {
+  calculateComparison,
+  calculateCalendarComparison,
+  generateDailySalesData,
+} from "@/lib/mock-data-daily";
+
+// Generate 730 days (2 years) of data
+const mockDailySales = generateDailySalesData(730);
+
+// Daily: today vs yesterday
+const comparisonDaily = calculateComparison(mockDailySales, "total", 1);
+
+// Weekly: current week (Mon-Sun) vs previous week (Mon-Sun)
+const comparisonWeekly = calculateCalendarComparison(mockDailySales, "total", "weekly");
+
+// Monthly: current month (1st-end) vs previous month (1st-end)
+const comparisonMonthly = calculateCalendarComparison(mockDailySales, "total", "monthly");
+
+// Quarterly: current quarter vs previous quarter (Q1: Jan-Mar, Q2: Apr-Jun, etc)
+const comparisonQuarterly = calculateCalendarComparison(mockDailySales, "total", "quarterly");
+
+// Semester: current semester vs previous semester (S1: Jan-Jun, S2: Jul-Dec)
+const comparisonSemester = calculateCalendarComparison(mockDailySales, "total", "semester");
+
+// Yearly: current year (Jan-Dec) vs previous year (Jan-Dec)
+const comparisonYearly = calculateCalendarComparison(mockDailySales, "total", "yearly");
 ```
 
 ### **Protected API Route Template**
@@ -413,13 +478,25 @@ Uploader:
 - Data Visualization: ⚠️ 80%
 - **Overall: ~62%**
 
-### **v0.3.0 Updates (January 21, 2026)**
+### **v0.3.2 Updates (January 22, 2026)**
+
+- ✅ Calendar-Based Period Comparisons (Weekly: Mon-Sun, Monthly: 1st-end, etc)
+- ✅ Excel Template Generator dengan sample data
+- ✅ Fixed Pause functionality - manual pause works correctly
+- ✅ Trend Chart dengan calendar-based aggregation
+- ✅ NPM script `npm run generate:template`
+
+### **v0.3.1 Updates (January 21, 2026)**
 
 - ✅ Category Achievement Visualization
-- ✅ Presentation Mode (Fullscreen Carousel)
+- ✅ Presentation Mode (Fullscreen Carousel with 7 sections)
+- ✅ 6 Multi-Period Comparison Cards (Daily → Yearly)
+- ✅ Split achievement sections (1/2, 2/2) - no scrolling
+- ✅ Fixed ESC key - single press exits immediately
 - ✅ Color-coded achievement indicators
 - ✅ Auto-slide every 5 seconds
 - ✅ Keyboard controls for presentations
+- ✅ Mock data: 730 days (2 years)
 
 ---
 

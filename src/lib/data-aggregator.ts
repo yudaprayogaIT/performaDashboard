@@ -3,28 +3,105 @@ import type { PeriodType } from "@/components/dashboard/period-selector";
 
 export interface AggregatedSalesData {
     period: string;
+    periodStart: Date; // For sorting
     local: number;
     cabang: number;
     total: number;
 }
 
-// Helper: Get week number
-function getWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+// Helper: Get Monday of the week for a given date (ISO week starts Monday)
+function getMondayOfWeek(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    return new Date(d.setDate(diff));
 }
 
-// Helper: Get quarter
-function getQuarter(month: number): number {
-    return Math.floor((month - 1) / 3) + 1;
+// Helper: Get first day of month
+function getFirstDayOfMonth(date: Date): Date {
+    return new Date(date.getFullYear(), date.getMonth(), 1);
 }
 
-// Helper: Get semester
-function getSemester(month: number): number {
-    return month <= 6 ? 1 : 2;
+// Helper: Get first day of quarter
+function getFirstDayOfQuarter(date: Date): Date {
+    const quarter = Math.floor(date.getMonth() / 3);
+    return new Date(date.getFullYear(), quarter * 3, 1);
+}
+
+// Helper: Get first day of semester
+function getFirstDayOfSemester(date: Date): Date {
+    const semester = date.getMonth() < 6 ? 0 : 1;
+    return new Date(date.getFullYear(), semester * 6, 1);
+}
+
+// Helper: Get first day of year
+function getFirstDayOfYear(date: Date): Date {
+    return new Date(date.getFullYear(), 0, 1);
+}
+
+// Helper: Format date for display
+function formatPeriodLabel(periodStart: Date, periodType: PeriodType): string {
+    const options: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
+
+    switch (periodType) {
+        case "weekly": {
+            // Show "6 Jan - 12 Jan" format
+            const weekEnd = new Date(periodStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            const startStr = periodStart.toLocaleDateString("id-ID", options);
+            const endStr = weekEnd.toLocaleDateString("id-ID", options);
+            return `${startStr}`;  // Just show start date for cleaner chart
+        }
+        case "monthly": {
+            return periodStart.toLocaleDateString("id-ID", { month: "short", year: "numeric" });
+        }
+        case "quarterly": {
+            const quarter = Math.floor(periodStart.getMonth() / 3) + 1;
+            return `Q${quarter} ${periodStart.getFullYear()}`;
+        }
+        case "semester": {
+            const semester = periodStart.getMonth() < 6 ? 1 : 2;
+            return `S${semester} ${periodStart.getFullYear()}`;
+        }
+        case "yearly": {
+            return periodStart.getFullYear().toString();
+        }
+        default:
+            return periodStart.toLocaleDateString("id-ID", options);
+    }
+}
+
+// Helper: Get unique period key for grouping
+function getPeriodKey(date: Date, periodType: PeriodType): string {
+    switch (periodType) {
+        case "weekly": {
+            const monday = getMondayOfWeek(date);
+            return monday.toISOString().split("T")[0];
+        }
+        case "monthly": {
+            const firstDay = getFirstDayOfMonth(date);
+            return firstDay.toISOString().split("T")[0];
+        }
+        case "quarterly": {
+            const firstDay = getFirstDayOfQuarter(date);
+            return firstDay.toISOString().split("T")[0];
+        }
+        case "semester": {
+            const firstDay = getFirstDayOfSemester(date);
+            return firstDay.toISOString().split("T")[0];
+        }
+        case "yearly": {
+            const firstDay = getFirstDayOfYear(date);
+            return firstDay.toISOString().split("T")[0];
+        }
+        default:
+            return date.toISOString().split("T")[0];
+    }
+}
+
+// Helper: Get period start date from key
+function getPeriodStartFromKey(key: string): Date {
+    return new Date(key);
 }
 
 // Aggregate daily data by period
@@ -33,73 +110,56 @@ export function aggregateDataByPeriod(
     periodType: PeriodType
 ): AggregatedSalesData[] {
     if (periodType === "daily") {
-        return data.map((item) => ({
-            period: new Date(item.date).toLocaleDateString("id-ID", {
-                day: "2-digit",
-                month: "short",
-            }),
-            local: item.local,
-            cabang: item.cabang,
-            total: item.total,
-        }));
+        return data.map((item) => {
+            const date = new Date(item.date);
+            return {
+                period: date.toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "short",
+                }),
+                periodStart: date,
+                local: item.local,
+                cabang: item.cabang,
+                total: item.total,
+            };
+        });
     }
 
-    const groupedData = new Map<string, { local: number; cabang: number; total: number }>();
+    // Group data by period start date
+    const groupedData = new Map<string, { periodStart: Date; local: number; cabang: number; total: number }>();
 
     data.forEach((item) => {
         const date = new Date(item.date);
-        let periodKey = "";
+        const periodKey = getPeriodKey(date, periodType);
 
-        switch (periodType) {
-            case "weekly": {
-                const weekNum = getWeekNumber(date);
-                const year = date.getFullYear();
-                periodKey = `W${weekNum} ${year}`;
-                break;
-            }
-            case "monthly": {
-                periodKey = date.toLocaleDateString("id-ID", {
-                    month: "short",
-                    year: "numeric",
-                });
-                break;
-            }
-            case "quarterly": {
-                const quarter = getQuarter(date.getMonth() + 1);
-                const year = date.getFullYear();
-                periodKey = `Q${quarter} ${year}`;
-                break;
-            }
-            case "semester": {
-                const semester = getSemester(date.getMonth() + 1);
-                const year = date.getFullYear();
-                periodKey = `S${semester} ${year}`;
-                break;
-            }
-            case "yearly": {
-                periodKey = date.getFullYear().toString();
-                break;
-            }
+        const existing = groupedData.get(periodKey);
+        if (existing) {
+            groupedData.set(periodKey, {
+                periodStart: existing.periodStart,
+                local: existing.local + item.local,
+                cabang: existing.cabang + item.cabang,
+                total: existing.total + item.total,
+            });
+        } else {
+            groupedData.set(periodKey, {
+                periodStart: getPeriodStartFromKey(periodKey),
+                local: item.local,
+                cabang: item.cabang,
+                total: item.total,
+            });
         }
-
-        const existing = groupedData.get(periodKey) || { local: 0, cabang: 0, total: 0 };
-        groupedData.set(periodKey, {
-            local: existing.local + item.local,
-            cabang: existing.cabang + item.cabang,
-            total: existing.total + item.total,
-        });
     });
 
-    // Convert Map to array and sort
+    // Convert Map to array, format labels, and sort by date
     return Array.from(groupedData.entries())
-        .map(([period, values]) => ({
-            period,
-            ...values,
+        .map(([, values]) => ({
+            period: formatPeriodLabel(values.periodStart, periodType),
+            periodStart: values.periodStart,
+            local: values.local,
+            cabang: values.cabang,
+            total: values.total,
         }))
-        .sort((a, b) => {
-            // Simple sort by period string (works for most cases)
-            return a.period.localeCompare(b.period);
-        });
+        .sort((a, b) => a.periodStart.getTime() - b.periodStart.getTime());
 }
 
 // Get appropriate data range based on period

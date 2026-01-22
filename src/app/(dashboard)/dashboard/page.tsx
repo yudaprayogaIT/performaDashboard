@@ -18,7 +18,7 @@ import {
   generateDailySalesData,
   mockDailyCategorySales,
   calculateComparison,
-  calculatePeriodComparison,
+  calculateCalendarComparison,
 } from "@/lib/mock-data-daily";
 import {
   aggregateDataByPeriod,
@@ -57,39 +57,41 @@ export default function DashboardPage() {
   // Daily comparison (today vs yesterday)
   const comparisonDaily = calculateComparison(mockDailySales, "total", 1);
 
-  // Weekly comparison (last 7 days vs previous 7 days)
-  const comparisonWeekly = calculatePeriodComparison(
+  // Weekly comparison (current week Mon-Sun vs previous week Mon-Sun)
+  const comparisonWeekly = calculateCalendarComparison(
     mockDailySales,
     "total",
-    7,
+    "weekly",
   );
 
-  // Monthly comparison (last 30 days vs previous 30 days)
-  const comparisonMonthly = calculatePeriodComparison(
+  // Monthly comparison (current month 1st-end vs previous month 1st-end)
+  const comparisonMonthly = calculateCalendarComparison(
     mockDailySales,
     "total",
-    30,
+    "monthly",
   );
 
-  // Quarterly comparison (last 90 days vs previous 90 days)
-  const comparisonQuarterly = calculatePeriodComparison(
+  // Quarterly comparison (current quarter vs previous quarter)
+  // Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec
+  const comparisonQuarterly = calculateCalendarComparison(
     mockDailySales,
     "total",
-    90,
+    "quarterly",
   );
 
-  // Semester comparison (last 180 days vs previous 180 days)
-  const comparisonSemester = calculatePeriodComparison(
+  // Semester comparison (current semester vs previous semester)
+  // S1: Jan-Jun, S2: Jul-Dec
+  const comparisonSemester = calculateCalendarComparison(
     mockDailySales,
     "total",
-    180,
+    "semester",
   );
 
-  // Yearly comparison (last 365 days vs previous 365 days)
-  const comparisonYearly = calculatePeriodComparison(
+  // Yearly comparison (current year Jan-Dec vs previous year Jan-Dec)
+  const comparisonYearly = calculateCalendarComparison(
     mockDailySales,
     "total",
-    365,
+    "yearly",
   );
 
   const comparisonLocalVsYesterday = calculateComparison(

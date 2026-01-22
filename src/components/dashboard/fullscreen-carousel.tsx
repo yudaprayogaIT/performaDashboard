@@ -17,8 +17,18 @@ export default function FullscreenCarousel({
 }: FullscreenCarouselProps) {
   const [currentSection, setCurrentSection] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [isManuallyPaused, setIsManuallyPaused] = useState(false); // Track manual pause
   const containerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Track resume timeout
+
+  // Clear resume timeout helper
+  const clearResumeTimeout = useCallback(() => {
+    if (resumeTimeoutRef.current) {
+      clearTimeout(resumeTimeoutRef.current);
+      resumeTimeoutRef.current = null;
+    }
+  }, []);
 
   // Auto-advance to next section
   const goToNext = useCallback(() => {
@@ -29,12 +39,25 @@ export default function FullscreenCarousel({
     setCurrentSection((prev) => (prev - 1 + sections.length) % sections.length);
   }, [sections.length]);
 
+  // Temporary pause (auto-resumes after 10 seconds, unless manually paused)
+  const temporaryPause = useCallback(() => {
+    if (isManuallyPaused) return; // Don't interfere with manual pause
+
+    clearResumeTimeout();
+    setIsPaused(true);
+
+    // Resume auto-play after 10 seconds
+    resumeTimeoutRef.current = setTimeout(() => {
+      if (!isManuallyPaused) {
+        setIsPaused(false);
+      }
+    }, 10000);
+  }, [isManuallyPaused, clearResumeTimeout]);
+
   const goToSection = useCallback((index: number) => {
     setCurrentSection(index);
-    setIsPaused(true);
-    // Resume auto-play after 10 seconds
-    setTimeout(() => setIsPaused(false), 10000);
-  }, []);
+    temporaryPause();
+  }, [temporaryPause]);
 
   // Auto-play effect
   useEffect(() => {
@@ -57,6 +80,16 @@ export default function FullscreenCarousel({
     };
   }, [isActive, isPaused, autoPlayInterval, goToNext]);
 
+  // Reset states when carousel becomes inactive
+  useEffect(() => {
+    if (!isActive) {
+      setCurrentSection(0);
+      setIsPaused(false);
+      setIsManuallyPaused(false);
+      clearResumeTimeout();
+    }
+  }, [isActive, clearResumeTimeout]);
+
   // Keyboard navigation
   useEffect(() => {
     if (!isActive) return;
@@ -66,27 +99,31 @@ export default function FullscreenCarousel({
         case "ArrowRight":
         case " ":
           goToNext();
-          setIsPaused(true);
-          setTimeout(() => setIsPaused(false), 10000);
+          temporaryPause();
           break;
         case "ArrowLeft":
           goToPrev();
-          setIsPaused(true);
-          setTimeout(() => setIsPaused(false), 10000);
+          temporaryPause();
           break;
         case "Escape":
           onExit();
           break;
         case "p":
         case "P":
-          setIsPaused((prev) => !prev);
+          // Toggle manual pause
+          clearResumeTimeout(); // Clear any pending auto-resume
+          setIsManuallyPaused((prev) => {
+            const newValue = !prev;
+            setIsPaused(newValue);
+            return newValue;
+          });
           break;
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isActive, goToNext, goToPrev, onExit]);
+  }, [isActive, goToNext, goToPrev, onExit, temporaryPause, clearResumeTimeout]);
 
   if (!isActive) return null;
 
@@ -115,7 +152,14 @@ export default function FullscreenCarousel({
               </button> */}
 
               <button
-                onClick={() => setIsPaused(!isPaused)}
+                onClick={() => {
+                  clearResumeTimeout();
+                  setIsManuallyPaused((prev) => {
+                    const newValue = !prev;
+                    setIsPaused(newValue);
+                    return newValue;
+                  });
+                }}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all backdrop-blur-sm"
               >
                 <span className="material-symbols-outlined">

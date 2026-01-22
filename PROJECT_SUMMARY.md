@@ -4,7 +4,7 @@
 **Purpose**: Sales performance tracking dashboard untuk LOCAL (Bogor & sekitar) dan CABANG (luar Bogor)
 **Tech Stack**: Next.js 15 + TypeScript + Tailwind CSS + MySQL + Prisma 6
 **Created**: January 2026
-**Last Updated**: January 21, 2026 (v0.3.0)
+**Last Updated**: January 22, 2026 (v0.3.2)
 
 ---
 
@@ -15,10 +15,12 @@ Dashboard untuk monitoring penjualan dengan fitur:
 - **Multi-location tracking**: LOCAL (Bogor area) vs CABANG (luar Bogor)
 - **Category-based analysis**: 17 product categories dengan visual achievement indicators
 - **Time-series trends**: Daily, Weekly, Monthly, Quarterly, Semester, Yearly
+- **Multi-period comparisons**: 6 comparison cards dengan calendar-based period (Weekly: Sen-Min, Monthly: 1-akhir bulan, dst)
 - **Target tracking**: Monthly/yearly targets dengan achievement percentage
 - **Category achievement visualization**: Circular progress cards untuk setiap kategori dengan color coding
-- **Presentation mode**: Fullscreen auto-carousel untuk presentasi (auto-slide setiap 5 detik)
-- **Excel upload**: Bulk upload sales data dari Excel files
+- **Presentation mode**: Fullscreen auto-carousel dengan 7 sections (auto-slide setiap 5 detik)
+- **Excel upload**: Bulk upload sales data dari Excel files dengan template download
+- **Excel template**: Template upload dengan sample data, referensi lokasi & kategori
 - **Role-based access**: Admin, Direktur, Manager, Uploader roles
 - **Authentication**: JWT-based authentication dengan cookie storage
 
@@ -448,7 +450,13 @@ settings.users, settings.roles, settings.categories, settings.locations, setting
 - 3 Summary Cards: Total Sales, Sales Local, Sales Cabang
 - 4 Quick Stats: Total Target, Total Omzet, Achievement %, Categories
 - Period Selector: Daily/Weekly/Monthly/Quarterly/Semester/Yearly
-- 3 Comparison Cards: vs Kemarin, vs Minggu Lalu, vs Bulan Lalu
+- **6 Multi-Period Comparison Cards** (Calendar-Based):
+  - Total Omzet Hari Ini (vs Kemarin)
+  - Total Omzet Minggu Ini (vs Minggu Lalu) - Senin-Minggu vs Senin-Minggu
+  - Total Omzet Bulan Ini (vs Bulan Lalu) - 1st-end vs 1st-end
+  - Total Omzet Triwulan Ini (vs Triwulan Lalu) - Q1: Jan-Mar, Q2: Apr-Jun, dst
+  - Total Omzet Semester Ini (vs Semester Lalu) - S1: Jan-Jun, S2: Jul-Dec
+  - Total Omzet Tahun Ini (vs Tahun Lalu) - Jan-Dec vs Jan-Dec
 - Interactive Charts: Line Chart (Trend Penjualan)
 - **Category Achievement Visualization**:
   - Grid layout dengan 17 kategori cards
@@ -458,20 +466,31 @@ settings.users, settings.roles, settings.categories, settings.locations, setting
   - Summary stats (Good/Average/Low counts)
 - **Presentation Mode** 🎉:
   - Fullscreen button di header
-  - Auto-carousel dengan 5 sections
+  - Auto-carousel dengan 7 sections
   - Auto-slide setiap 5 detik
-  - Manual navigation (keyboard & arrows)
-  - Pause/Resume functionality
+  - Sections: Summary, Multi-Period Comparison, Trends, LOCAL 1/2, LOCAL 2/2, CABANG 1/2, CABANG 2/2
+  - No scrolling - achievement sections split into pages
+  - Manual navigation (keyboard arrows & dot indicators)
+  - Pause/Resume functionality (P key)
+  - ESC key exits immediately (both fullscreen and presentation mode)
   - Perfect untuk presentasi ke management
 - Month/Year Filter
+- Mock data: 730 days (2 years) untuk support all period comparisons
 
-### **3. Upload Page** (`/upload`) - ⚠️ UI Only
+### **3. Upload Page** (`/upload`) - ⚠️ UI Only (Backend belum)
 
 **Features:**
 - Drag & Drop Uploader
 - File Preview
 - Data Preview Table
 - Progress Indicator
+- **Download Template Button** - Excel template dengan sample data
+- **Template Contents**:
+  - Sheet 1: Petunjuk Pengisian
+  - Sheet 2: Data Penjualan (30 hari sample)
+  - Sheet 3: Referensi Lokasi (15 lokasi)
+  - Sheet 4: Referensi Kategori (17 kategori)
+  - Sheet 5: Template Kosong
 
 **Status**: Frontend selesai, backend belum
 
@@ -668,12 +687,23 @@ npm run db:studio    # Open Prisma Studio (DB GUI)
 | Data Visualization | 80% | ⚠️ In Progress |
 | **Overall** | **~62%** | 🚧 Active Development |
 
-### **Recent Updates (v0.3.0 - January 21, 2026)**
+### **Recent Updates (v0.3.2 - January 22, 2026)**
+- ✅ **Calendar-Based Period Comparisons** - Weekly (Mon-Sun), Monthly (1st-end), Quarterly (Q1-Q4), Semester (S1-S2), Yearly (Jan-Dec)
+- ✅ **Excel Template Generator** - Download template dengan sample data, referensi lokasi & kategori
+- ✅ **Fixed Pause Functionality** - Manual pause (P key) now works correctly, tidak terganggu auto-resume
+- ✅ **Trend Chart Calendar Periods** - Aggregasi data berdasarkan periode kalender (bukan rolling days)
+- ✅ NPM script `npm run generate:template` untuk regenerate Excel template
+
+### **v0.3.1 Updates (January 21, 2026)**
 - ✅ Added Category Achievement Visualization (circular progress cards)
 - ✅ Implemented Presentation Mode with fullscreen auto-carousel
 - ✅ Color-coded achievement indicators (Red/Yellow/Green)
-- ✅ 5-section carousel with auto-slide every 5 seconds
+- ✅ 7-section carousel with auto-slide every 5 seconds
+- ✅ 6 Multi-Period Comparison Cards (Daily, Weekly, Monthly, Quarterly, Semester, Yearly)
+- ✅ Split achievement sections into pages (1/2, 2/2) - no scrolling in presentation mode
+- ✅ Fixed ESC key behavior - single press exits both fullscreen and presentation mode
 - ✅ Keyboard controls and manual navigation for presentations
+- ✅ Mock data generator creates 730 days (2 years) of data
 
 ---
 
@@ -693,7 +723,7 @@ JWT_EXPIRES_IN="7d"
 
 ---
 
-**Last Updated**: January 21, 2026
-**Version**: 0.3.0
+**Last Updated**: January 22, 2026
+**Version**: 0.3.2
 **Status**: Active Development 🚧
 ````
