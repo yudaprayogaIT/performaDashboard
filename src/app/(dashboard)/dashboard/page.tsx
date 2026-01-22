@@ -56,6 +56,7 @@ export default function DashboardPage() {
 
   // Daily comparison (today vs yesterday)
   const comparisonDaily = calculateComparison(mockDailySales, "total", 1);
+  const grossMarginDaily = calculateComparison(mockDailySales, "totalGrossMargin", 1);
 
   // Weekly comparison (current week Mon-Sun vs previous week Mon-Sun)
   const comparisonWeekly = calculateCalendarComparison(
@@ -63,11 +64,21 @@ export default function DashboardPage() {
     "total",
     "weekly",
   );
+  const grossMarginWeekly = calculateCalendarComparison(
+    mockDailySales,
+    "totalGrossMargin",
+    "weekly",
+  );
 
   // Monthly comparison (current month 1st-end vs previous month 1st-end)
   const comparisonMonthly = calculateCalendarComparison(
     mockDailySales,
     "total",
+    "monthly",
+  );
+  const grossMarginMonthly = calculateCalendarComparison(
+    mockDailySales,
+    "totalGrossMargin",
     "monthly",
   );
 
@@ -78,6 +89,11 @@ export default function DashboardPage() {
     "total",
     "quarterly",
   );
+  const grossMarginQuarterly = calculateCalendarComparison(
+    mockDailySales,
+    "totalGrossMargin",
+    "quarterly",
+  );
 
   // Semester comparison (current semester vs previous semester)
   // S1: Jan-Jun, S2: Jul-Dec
@@ -86,11 +102,21 @@ export default function DashboardPage() {
     "total",
     "semester",
   );
+  const grossMarginSemester = calculateCalendarComparison(
+    mockDailySales,
+    "totalGrossMargin",
+    "semester",
+  );
 
   // Yearly comparison (current year Jan-Dec vs previous year Jan-Dec)
   const comparisonYearly = calculateCalendarComparison(
     mockDailySales,
     "total",
+    "yearly",
+  );
+  const grossMarginYearly = calculateCalendarComparison(
+    mockDailySales,
+    "totalGrossMargin",
     "yearly",
   );
 
@@ -191,7 +217,7 @@ export default function DashboardPage() {
             <span className="material-symbols-outlined text-primary text-5xl">
               timeline
             </span>
-            Pertumbuhan Omzet
+            Pertumbuhan Omzet & Gross Margin
           </h1>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -199,36 +225,42 @@ export default function DashboardPage() {
             title="Total Omzet Hari Ini"
             comparisonLabel="vs Kemarin"
             data={comparisonDaily}
+            grossMarginData={grossMarginDaily}
             icon="calendar_today"
           />
           <ComparisonCard
             title="Total Omzet Minggu Ini"
             comparisonLabel="vs Minggu Lalu"
             data={comparisonWeekly}
+            grossMarginData={grossMarginWeekly}
             icon="date_range"
           />
           <ComparisonCard
             title="Total Omzet Bulan Ini"
             comparisonLabel="vs Bulan Lalu"
             data={comparisonMonthly}
+            grossMarginData={grossMarginMonthly}
             icon="calendar_month"
           />
           <ComparisonCard
             title="Total Omzet Triwulan Ini"
             comparisonLabel="vs Triwulan Lalu"
             data={comparisonQuarterly}
+            grossMarginData={grossMarginQuarterly}
             icon="event_note"
           />
           <ComparisonCard
             title="Total Omzet Semester Ini"
             comparisonLabel="vs Semester Lalu"
             data={comparisonSemester}
+            grossMarginData={grossMarginSemester}
             icon="calendar_view_month"
           />
           <ComparisonCard
             title="Total Omzet Tahun Ini"
             comparisonLabel="vs Tahun Lalu"
             data={comparisonYearly}
+            grossMarginData={grossMarginYearly}
             icon="date_range"
           />
         </div>
@@ -320,6 +352,12 @@ export default function DashboardPage() {
       comparisonQuarterly,
       comparisonSemester,
       comparisonYearly,
+      grossMarginDaily,
+      grossMarginWeekly,
+      grossMarginMonthly,
+      grossMarginQuarterly,
+      grossMarginSemester,
+      grossMarginYearly,
     ],
   );
 
@@ -387,43 +425,49 @@ export default function DashboardPage() {
             <span className="material-symbols-outlined text-primary">
               timeline
             </span>
-            Pertumbuhan Omzet
+            Pertumbuhan Omzet & Gross Margin
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ComparisonCard
               title="Total Omzet Hari Ini"
               comparisonLabel="vs Kemarin"
               data={comparisonDaily}
+              grossMarginData={grossMarginDaily}
               icon="calendar_today"
             />
             <ComparisonCard
               title="Total Omzet Minggu Ini"
               comparisonLabel="vs Minggu Lalu"
               data={comparisonWeekly}
+              grossMarginData={grossMarginWeekly}
               icon="date_range"
             />
             <ComparisonCard
               title="Total Omzet Bulan Ini"
               comparisonLabel="vs Bulan Lalu"
               data={comparisonMonthly}
+              grossMarginData={grossMarginMonthly}
               icon="calendar_month"
             />
             <ComparisonCard
               title="Total Omzet Triwulan Ini"
               comparisonLabel="vs Triwulan Lalu"
               data={comparisonQuarterly}
+              grossMarginData={grossMarginQuarterly}
               icon="event_note"
             />
             <ComparisonCard
               title="Total Omzet Semester Ini"
               comparisonLabel="vs Semester Lalu"
               data={comparisonSemester}
+              grossMarginData={grossMarginSemester}
               icon="calendar_view_month"
             />
             <ComparisonCard
               title="Total Omzet Tahun Ini"
               comparisonLabel="vs Tahun Lalu"
               data={comparisonYearly}
+              grossMarginData={grossMarginYearly}
               icon="date_range"
             />
           </div>

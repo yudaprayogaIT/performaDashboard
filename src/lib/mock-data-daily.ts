@@ -4,6 +4,10 @@ export interface DailySales {
     local: number;
     cabang: number;
     total: number;
+    // Gross Margin (profit setelah dikurangi HPP)
+    localGrossMargin: number;
+    cabangGrossMargin: number;
+    totalGrossMargin: number;
 }
 
 export interface DailyCategorySales {
@@ -34,11 +38,20 @@ export const generateDailySalesData = (days: number = 30): DailySales[] => {
         const local = Math.round(baseLocal * growthFactor * randomFactor);
         const cabang = Math.round(baseCabang * growthFactor * randomFactor);
 
+        // Gross margin: LOCAL biasanya 25-30%, CABANG 20-25%
+        const localMarginRate = 0.25 + Math.random() * 0.05; // 25-30%
+        const cabangMarginRate = 0.20 + Math.random() * 0.05; // 20-25%
+        const localGrossMargin = Math.round(local * localMarginRate);
+        const cabangGrossMargin = Math.round(cabang * cabangMarginRate);
+
         data.push({
             date: date.toISOString().split('T')[0],
             local,
             cabang,
             total: local + cabang,
+            localGrossMargin,
+            cabangGrossMargin,
+            totalGrossMargin: localGrossMargin + cabangGrossMargin,
         });
     }
 
@@ -93,7 +106,7 @@ export interface ComparisonData {
 
 export const calculateComparison = (
     data: DailySales[],
-    field: keyof Pick<DailySales, 'local' | 'cabang' | 'total'>,
+    field: keyof Pick<DailySales, 'local' | 'cabang' | 'total' | 'localGrossMargin' | 'cabangGrossMargin' | 'totalGrossMargin'>,
     daysAgo: number
 ): ComparisonData => {
     if (data.length < daysAgo + 1) {
@@ -121,7 +134,7 @@ export const calculateComparison = (
 // Calculate period comparison (sum last N days vs previous N days) - ROLLING
 export const calculatePeriodComparison = (
     data: DailySales[],
-    field: keyof Pick<DailySales, 'local' | 'cabang' | 'total'>,
+    field: keyof Pick<DailySales, 'local' | 'cabang' | 'total' | 'localGrossMargin' | 'cabangGrossMargin' | 'totalGrossMargin'>,
     periodDays: number
 ): ComparisonData => {
     if (data.length < periodDays * 2) {
@@ -218,7 +231,7 @@ function filterDataInRange(data: DailySales[], startDate: Date, endDate: Date): 
 }
 
 // Helper: Sum field values
-function sumField(data: DailySales[], field: keyof Pick<DailySales, 'local' | 'cabang' | 'total'>): number {
+function sumField(data: DailySales[], field: keyof Pick<DailySales, 'local' | 'cabang' | 'total' | 'localGrossMargin' | 'cabangGrossMargin' | 'totalGrossMargin'>): number {
     return data.reduce((sum, day) => sum + day[field], 0);
 }
 
@@ -228,7 +241,7 @@ export type CalendarPeriodType = 'weekly' | 'monthly' | 'quarterly' | 'semester'
 // Calculate calendar-based period comparison
 export const calculateCalendarComparison = (
     data: DailySales[],
-    field: keyof Pick<DailySales, 'local' | 'cabang' | 'total'>,
+    field: keyof Pick<DailySales, 'local' | 'cabang' | 'total' | 'localGrossMargin' | 'cabangGrossMargin' | 'totalGrossMargin'>,
     periodType: CalendarPeriodType
 ): ComparisonData => {
     const today = new Date();
