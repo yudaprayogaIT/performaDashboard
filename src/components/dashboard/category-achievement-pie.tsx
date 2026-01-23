@@ -33,12 +33,14 @@ export default function CategoryAchievementPie({
   });
 
   // Sort by achievement (lowest first to highlight problems)
-  const sortedData = [...categoryData].sort((a, b) => a.achievement - b.achievement);
+  const sortedData = [...categoryData].sort(
+    (a, b) => a.achievement - b.achievement,
+  );
 
   // Calculate statistics
   const goodCount = sortedData.filter((d) => d.achievement >= 75).length;
   const averageCount = sortedData.filter(
-    (d) => d.achievement >= 50 && d.achievement < 75
+    (d) => d.achievement >= 50 && d.achievement < 75,
   ).length;
   const lowCount = sortedData.filter((d) => d.achievement < 50).length;
 
@@ -101,7 +103,7 @@ export default function CategoryAchievementPie({
       </div>
 
       {/* Category Cards Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-4">
         {sortedData.map((category, index) => (
           <CategoryAchievementCard
             key={index}

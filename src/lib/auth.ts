@@ -140,6 +140,6 @@ export const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
-  maxAge: 7 * 24 * 60 * 60, // 7 hari dalam detik
+  maxAge: 1 * 24 * 60 * 60, // 1 hari dalam detik
   path: "/",
 };

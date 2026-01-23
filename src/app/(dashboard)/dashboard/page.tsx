@@ -56,7 +56,11 @@ export default function DashboardPage() {
 
   // Daily comparison (today vs yesterday)
   const comparisonDaily = calculateComparison(mockDailySales, "total", 1);
-  const grossMarginDaily = calculateComparison(mockDailySales, "totalGrossMargin", 1);
+  const grossMarginDaily = calculateComparison(
+    mockDailySales,
+    "totalGrossMargin",
+    1,
+  );
 
   // Weekly comparison (current week Mon-Sun vs previous week Mon-Sun)
   const comparisonWeekly = calculateCalendarComparison(
@@ -182,7 +186,8 @@ export default function DashboardPage() {
             variant="default"
           />
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+
+        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
             <p className="text-sm text-white/50 uppercase tracking-wider mb-2">
               Total Target
@@ -207,11 +212,8 @@ export default function DashboardPage() {
             </p>
             <p className="text-2xl font-bold text-white">17</p>
           </div>
-        </div>
-      </div>,
+        </div> */}
 
-      // Section 2: Multi-Period Growth Comparison
-      <div key="comparison" className="space-y-6">
         <div>
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
             <span className="material-symbols-outlined text-primary text-5xl">
@@ -242,29 +244,64 @@ export default function DashboardPage() {
             grossMarginData={grossMarginMonthly}
             icon="calendar_month"
           />
-          <ComparisonCard
-            title="Total Omzet Triwulan Ini"
-            comparisonLabel="vs Triwulan Lalu"
-            data={comparisonQuarterly}
-            grossMarginData={grossMarginQuarterly}
-            icon="event_note"
-          />
-          <ComparisonCard
-            title="Total Omzet Semester Ini"
-            comparisonLabel="vs Semester Lalu"
-            data={comparisonSemester}
-            grossMarginData={grossMarginSemester}
-            icon="calendar_view_month"
-          />
-          <ComparisonCard
-            title="Total Omzet Tahun Ini"
-            comparisonLabel="vs Tahun Lalu"
-            data={comparisonYearly}
-            grossMarginData={grossMarginYearly}
-            icon="date_range"
-          />
         </div>
       </div>,
+
+      // Section 2: Multi-Period Growth Comparison
+      // <div key="comparison" className="space-y-6">
+      //   <div>
+      //     <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+      //       <span className="material-symbols-outlined text-primary text-5xl">
+      //         timeline
+      //       </span>
+      //       Pertumbuhan Omzet & Gross Margin
+      //     </h1>
+      //   </div>
+      //   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      //     <ComparisonCard
+      //       title="Total Omzet Hari Ini"
+      //       comparisonLabel="vs Kemarin"
+      //       data={comparisonDaily}
+      //       grossMarginData={grossMarginDaily}
+      //       icon="calendar_today"
+      //     />
+      //     <ComparisonCard
+      //       title="Total Omzet Minggu Ini"
+      //       comparisonLabel="vs Minggu Lalu"
+      //       data={comparisonWeekly}
+      //       grossMarginData={grossMarginWeekly}
+      //       icon="date_range"
+      //     />
+      //     <ComparisonCard
+      //       title="Total Omzet Bulan Ini"
+      //       comparisonLabel="vs Bulan Lalu"
+      //       data={comparisonMonthly}
+      //       grossMarginData={grossMarginMonthly}
+      //       icon="calendar_month"
+      //     />
+      //     <ComparisonCard
+      //       title="Total Omzet Triwulan Ini"
+      //       comparisonLabel="vs Triwulan Lalu"
+      //       data={comparisonQuarterly}
+      //       grossMarginData={grossMarginQuarterly}
+      //       icon="event_note"
+      //     />
+      //     <ComparisonCard
+      //       title="Total Omzet Semester Ini"
+      //       comparisonLabel="vs Semester Lalu"
+      //       data={comparisonSemester}
+      //       grossMarginData={grossMarginSemester}
+      //       icon="calendar_view_month"
+      //     />
+      //     <ComparisonCard
+      //       title="Total Omzet Tahun Ini"
+      //       comparisonLabel="vs Tahun Lalu"
+      //       data={comparisonYearly}
+      //       grossMarginData={grossMarginYearly}
+      //       icon="date_range"
+      //     />
+      //   </div>
+      // </div>,
 
       // Section 3: Trend Chart
       <div key="trends" className="space-y-6">
@@ -285,57 +322,29 @@ export default function DashboardPage() {
         />
       </div>,
 
-      // Section 4: LOCAL Achievement (Part 1/2)
-      <div key="local-achievement-1" className="space-y-6">
+      // Section 4: LOCAL Achievement (All Categories)
+      <div key="local-achievement" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            LOCAL Achievement (Bogor & Sekitar) - 1/2
+            LOCAL Achievement (Bogor & Sekitar)
           </h1>
         </div>
         <CategoryAchievementPie
-          categories={mockCategories.slice(0, 9)}
+          categories={mockCategories}
           type="local"
           title=""
         />
       </div>,
 
-      // Section 5: LOCAL Achievement (Part 2/2)
-      <div key="local-achievement-2" className="space-y-6">
+      // Section 5: CABANG Achievement (All Categories)
+      <div key="cabang-achievement" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            LOCAL Achievement (Bogor & Sekitar) - 2/2
+            CABANG Achievement (Luar Bogor)
           </h1>
         </div>
         <CategoryAchievementPie
-          categories={mockCategories.slice(9)}
-          type="local"
-          title=""
-        />
-      </div>,
-
-      // Section 6: CABANG Achievement (Part 1/2)
-      <div key="cabang-achievement-1" className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            CABANG Achievement (Luar Bogor) - 1/2
-          </h1>
-        </div>
-        <CategoryAchievementPie
-          categories={mockCategories.slice(0, 9)}
-          type="cabang"
-          title=""
-        />
-      </div>,
-
-      // Section 7: CABANG Achievement (Part 2/2)
-      <div key="cabang-achievement-2" className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-white mb-2">
-            CABANG Achievement (Luar Bogor) - 2/2
-          </h1>
-        </div>
-        <CategoryAchievementPie
-          categories={mockCategories.slice(9)}
+          categories={mockCategories}
           type="cabang"
           title=""
         />
@@ -449,7 +458,7 @@ export default function DashboardPage() {
               grossMarginData={grossMarginMonthly}
               icon="calendar_month"
             />
-            <ComparisonCard
+            {/* <ComparisonCard
               title="Total Omzet Triwulan Ini"
               comparisonLabel="vs Triwulan Lalu"
               data={comparisonQuarterly}
@@ -469,7 +478,7 @@ export default function DashboardPage() {
               data={comparisonYearly}
               grossMarginData={grossMarginYearly}
               icon="date_range"
-            />
+            /> */}
           </div>
         </div>
 
@@ -573,7 +582,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Quick Stats Summary */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
               Total Target
@@ -598,7 +607,7 @@ export default function DashboardPage() {
             </p>
             <p className="text-lg font-bold text-white">17</p>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Fullscreen Carousel Presentation Mode */}
@@ -607,7 +616,6 @@ export default function DashboardPage() {
         isActive={isPresentationMode}
         onExit={handleExitPresentationMode}
         autoPlayInterval={5000}
-        
       />
     </>
   );
