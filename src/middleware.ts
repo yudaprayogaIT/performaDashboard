@@ -26,7 +26,26 @@ const protectedApiPrefixes = [
   "/api/users",
   "/api/sales",
   "/api/dashboard",
+  "/api/upload",
+  "/api/notifications",
+  "/api/admin",
 ];
+
+// ============================================
+// ROLE-BASED DEFAULT ROUTES (Future Use)
+// ============================================
+
+/**
+ * Default landing page untuk setiap role setelah login
+ * TODO: Uncomment when role-based pages are created
+ */
+// const roleRedirects: Record<string, string> = {
+//   ADMINISTRATOR: "/admin/roles",
+//   DIREKTUR: "/dashboard",
+//   MARKETING: "/upload/omzet",
+//   ACCOUNTING: "/upload",
+//   SUPERVISOR: "/dashboard",
+// };
 
 // ============================================
 // HELPER FUNCTIONS
@@ -74,6 +93,38 @@ function hasValidTokenFormat(token: string | undefined): boolean {
   const parts = token.split(".");
   return parts.length === 3;
 }
+
+/**
+ * Decode JWT payload tanpa verification
+ * Hanya untuk mendapat role user di middleware
+ * Full verification tetap dilakukan di API route
+ * TODO: Uncomment when implementing role-based redirects
+ */
+// function decodeJWTPayload(token: string): { roles?: string[] } | null {
+//   try {
+//     const parts = token.split(".");
+//     if (parts.length !== 3) return null;
+
+//     // Decode base64 payload (part kedua dari JWT)
+//     const payload = parts[1];
+//     const decoded = Buffer.from(payload, "base64").toString("utf-8");
+//     return JSON.parse(decoded);
+//   } catch (error) {
+//     return null;
+//   }
+// }
+
+/**
+ * Get primary role dari JWT payload
+ * TODO: Uncomment when implementing role-based redirects
+ */
+// function getPrimaryRole(token: string): string | null {
+//   const payload = decodeJWTPayload(token);
+//   if (!payload || !payload.roles || payload.roles.length === 0) {
+//     return null;
+//   }
+//   return payload.roles[0];
+// }
 
 // ============================================
 // MIDDLEWARE FUNCTION
@@ -131,7 +182,15 @@ export function middleware(request: NextRequest) {
   }
 
   // -----------------------------------------
-  // 5. User authenticated, continue
+  // 5. Role-based redirects untuk authenticated users
+  // -----------------------------------------
+  // Redirect root "/" ke dashboard (for now, until role-based pages are created)
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // -----------------------------------------
+  // 6. User authenticated, continue
   // -----------------------------------------
   return NextResponse.next();
 }
