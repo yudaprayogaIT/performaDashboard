@@ -36,9 +36,41 @@ Prisma Studio:    http://localhost:5555
 phpMyAdmin:       http://localhost/phpmyadmin
 ```
 
-## 🎯 New Features (v0.3.2)
+## 🎯 New Features (v0.3.3)
 
-### **Presentation Mode**
+### **Gross Margin Tracking**
+
+- Added gross margin to comparison cards
+- Each card shows both Omzet and Gross Margin with separate comparisons
+- Different margin rates: LOCAL (25-30%), CABANG (20-25%)
+- Gross Margin = Omzet - HPP (Harga Pokok Penjualan)
+
+### **Multiple Excel Templates**
+
+- 2 separate templates: Penjualan & Gross Margin
+- Download dropdown untuk pilih template yang diinginkan
+- Upload page with data type selection (Penjualan or Gross Margin)
+- Different preview table based on selected data type
+
+### **Calculation Documentation**
+
+📚 Comprehensive documentation available:
+
+- **`CALCULATION_DOCUMENTATION.md`** - Technical documentation
+  - Detailed formulas and calculations
+  - Calendar-based period logic
+  - Data aggregation methods
+  - Flow diagrams
+
+- **`DASHBOARD_VISUAL_GUIDE.md`** - Quick visual guide
+  - Easy-to-understand examples
+  - Visual flow diagrams
+  - FAQ and tips
+  - Formula cheat sheet
+
+**Recommended:** Read `DASHBOARD_VISUAL_GUIDE.md` first for overview, then `CALCULATION_DOCUMENTATION.md` for technical details.
+
+### **Presentation Mode (v0.3.2)**
 
 - Click "Presentation Mode" button di dashboard header
 - Auto-carousel dengan 7 sections, auto-slide setiap 5 detik
@@ -49,7 +81,7 @@ phpMyAdmin:       http://localhost/phpmyadmin
 - Manual navigation dengan dot indicators
 - Achievement sections split into 2 pages (no scrolling needed)
 
-### **Multi-Period Growth Comparisons (Calendar-Based)**
+### **Multi-Period Growth Comparisons (Calendar-Based) (v0.3.2)**
 
 - 6 comparison cards: Daily, Weekly, Monthly, Quarterly, Semester, Yearly
 - **Calendar-based comparisons** (bukan rolling days):
@@ -60,17 +92,32 @@ phpMyAdmin:       http://localhost/phpmyadmin
   - Yearly: Jan-Dec vs tahun sebelumnya
 - Perfect untuk analisis trend dan pengambilan keputusan
 
-### **Excel Template**
+### **Excel Templates (v0.3.2)**
 
-- Download template di halaman Upload
-- **Template Contents:**
-  - Sheet 1: Petunjuk Pengisian
-  - Sheet 2: Data Penjualan (30 hari sample)
-  - Sheet 3: Referensi Lokasi (15 lokasi)
-  - Sheet 4: Referensi Kategori (17 kategori)
-  - Sheet 5: Template Kosong
-- Regenerate: `npm run generate:template`
+Generate with: `npm run generate:template`
+
+**Template 1: Penjualan**
 - URL: `/templates/template_upload_penjualan.xlsx`
+- Columns: tanggal, kode_lokasi, kategori, amount, catatan
+- Sheet 1: Petunjuk Pengisian
+- Sheet 2: Data Penjualan (30 hari sample)
+- Sheet 3: Referensi Lokasi (15 lokasi)
+- Sheet 4: Referensi Kategori (17 kategori)
+- Sheet 5: Template Kosong
+
+**Template 2: Gross Margin**
+- URL: `/templates/template_upload_gross_margin.xlsx`
+- Columns: tanggal, kode_lokasi, kategori, omzet, hpp, gross_margin, catatan
+- Sheet 1: Petunjuk Pengisian
+- Sheet 2: Data Gross Margin (30 hari sample dengan margin rate berbeda)
+- Sheet 3: Referensi Lokasi (15 lokasi)
+- Sheet 4: Referensi Kategori (17 kategori)
+- Sheet 5: Template Kosong
+
+**Upload Page:**
+- Select data type before upload (Penjualan or Gross Margin)
+- Download dropdown to choose template
+- Preview table adapts to selected data type
 
 ### **Category Achievement Visualization**
 

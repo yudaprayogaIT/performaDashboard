@@ -4,7 +4,7 @@
 **Purpose**: Sales performance tracking dashboard untuk LOCAL (Bogor & sekitar) dan CABANG (luar Bogor)
 **Tech Stack**: Next.js 15 + TypeScript + Tailwind CSS + MySQL + Prisma 6
 **Created**: January 2026
-**Last Updated**: January 22, 2026 (v0.3.2)
+**Last Updated**: January 23, 2026 (v0.3.3)
 
 ---
 
@@ -676,6 +676,42 @@ npm run db:studio    # Open Prisma Studio (DB GUI)
 
 ---
 
+## 📚 Documentation
+
+### **Calculation Documentation**
+
+Untuk memahami cara kerja perhitungan di dashboard, tersedia 2 dokumentasi lengkap:
+
+#### **1. Technical Documentation** - `CALCULATION_DOCUMENTATION.md`
+Dokumentasi teknis lengkap yang mencakup:
+- Formula dan perhitungan detail untuk setiap metrik
+- Comparison calculations (Daily, Weekly, Monthly, Quarterly, Semester, Yearly)
+- Gross Margin calculation dengan margin rate berbeda (LOCAL: 25-30%, CABANG: 20-25%)
+- Calendar-based period logic (Senin ketemu Senin, tanggal 1 ketemu tanggal 1, dll)
+- Data aggregation untuk trend charts
+- Achievement calculation by category
+- Flow data dari upload sampai dashboard
+- Helper functions untuk date manipulation
+- Type definitions dan interfaces
+- Color coding logic dan formatting rules
+
+#### **2. Visual Guide** - `DASHBOARD_VISUAL_GUIDE.md`
+Quick reference guide dengan visual examples:
+- Penjelasan apa yang ditampilkan di setiap komponen dashboard
+- Contoh perhitungan dengan angka konkret
+- Visualisasi flow data yang mudah dipahami
+- Comparison examples untuk setiap periode
+- FAQ dan tips membaca dashboard
+- Cheat sheet rumus-rumus cepat
+- Color indicator meanings
+
+**📖 Recommended Reading Flow:**
+1. Baca `DASHBOARD_VISUAL_GUIDE.md` terlebih dahulu untuk overview
+2. Lanjut ke `CALCULATION_DOCUMENTATION.md` untuk detail teknis
+3. Gunakan `QUICK_REFERENCE.md` saat development
+
+---
+
 ## 📊 Current Progress
 
 | Area | Progress | Status |
@@ -685,9 +721,18 @@ npm run db:studio    # Open Prisma Studio (DB GUI)
 | Backend API | 40% | ⚠️ In Progress |
 | Frontend UI | 75% | ⚠️ In Progress |
 | Data Visualization | 80% | ⚠️ In Progress |
-| **Overall** | **~62%** | 🚧 Active Development |
+| Documentation | 85% | ⚠️ In Progress |
+| **Overall** | **~63%** | 🚧 Active Development |
 
-### **Recent Updates (v0.3.2 - January 22, 2026)**
+### **Recent Updates (v0.3.3 - January 23, 2026)**
+- ✅ **Gross Margin Feature** - Added gross margin tracking to comparison cards
+- ✅ **Multiple Excel Templates** - Separate templates for Penjualan and Gross Margin data
+- ✅ **Upload Type Selection** - Choose data type (Penjualan or Gross Margin) before upload
+- ✅ **Template Download Dropdown** - Select which template to download
+- ✅ **Calculation Documentation** - Complete technical documentation and visual guide
+- ✅ Gross Margin mock data generation with different margin rates for LOCAL vs CABANG
+
+### **v0.3.2 Updates (January 22, 2026)**
 - ✅ **Calendar-Based Period Comparisons** - Weekly (Mon-Sun), Monthly (1st-end), Quarterly (Q1-Q4), Semester (S1-S2), Yearly (Jan-Dec)
 - ✅ **Excel Template Generator** - Download template dengan sample data, referensi lokasi & kategori
 - ✅ **Fixed Pause Functionality** - Manual pause (P key) now works correctly, tidak terganggu auto-resume
@@ -723,7 +768,7 @@ JWT_EXPIRES_IN="7d"
 
 ---
 
-**Last Updated**: January 22, 2026
-**Version**: 0.3.2
+**Last Updated**: January 23, 2026
+**Version**: 0.3.3
 **Status**: Active Development 🚧
 ````
