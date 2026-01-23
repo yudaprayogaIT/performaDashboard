@@ -1,8 +1,8 @@
 // src/app/access-denied/page.tsx
 
-import Link from 'next/link';
-import { ShieldX, Home } from 'lucide-react';
-import { BackButton } from '@/components/ui/BackButton';
+import Link from "next/link";
+import { ShieldX, Home } from "lucide-react";
+import { BackButton } from "@/components/ui/BackButton";
 
 export default function AccessDeniedPage() {
   return (
@@ -36,18 +36,19 @@ export default function AccessDeniedPage() {
             </h1>
             <p className="text-[#a697c4] text-base leading-relaxed">
               Maaf, Anda tidak memiliki izin untuk mengakses halaman ini.
-              Silakan hubungi administrator jika Anda merasa ini adalah kesalahan.
+              Silakan hubungi administrator jika Anda merasa ini adalah
+              kesalahan.
             </p>
           </div>
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <Link
-              href="/dashboard"
+              href="/"
               className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white font-medium rounded-lg hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
             >
               <Home className="w-5 h-5" />
-              Kembali ke Dashboard
+              Kembali ke Beranda
             </Link>
 
             <BackButton />
@@ -56,8 +57,11 @@ export default function AccessDeniedPage() {
           {/* Additional Info */}
           <div className="pt-4 border-t border-white/10 text-center">
             <p className="text-sm text-[#a697c4]">
-              Jika Anda memerlukan akses tambahan, silakan hubungi{' '}
-              <span className="text-white font-medium">administrator sistem</span> Anda.
+              Jika Anda memerlukan akses tambahan, silakan hubungi{" "}
+              <span className="text-white font-medium">
+                administrator sistem
+              </span>{" "}
+              Anda.
             </p>
           </div>
         </div>

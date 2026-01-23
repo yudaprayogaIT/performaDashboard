@@ -62,12 +62,8 @@ export default function PermissionsPage() {
       const data = await response.json();
 
       if (data.success) {
-        // Convert grouped object to array
-        const groups = Object.entries(data.permissions).map(([module, permissions]) => ({
-          module,
-          permissions: permissions as Permission[],
-        }));
-        setPermissionGroups(groups);
+        // Data.permissions is already an array of groups from API
+        setPermissionGroups(data.permissions || []);
       } else {
         setError(data.message);
       }

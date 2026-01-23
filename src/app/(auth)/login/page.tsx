@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Ambil callback URL dari query params (dari middleware)
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+  const callbackUrl = searchParams.get("callbackUrl") || "/upload";
 
   const handleLogin = async (credentials: LoginCredentials) => {
     // Reset error state
@@ -43,8 +43,9 @@ export default function LoginPage() {
         return;
       }
 
-      // Login berhasil - redirect ke callback URL atau dashboard
-      router.push(callbackUrl);
+      // Login berhasil - redirect ke URL yang ditentukan API berdasarkan permissions
+      const redirectTo = data.redirectUrl || callbackUrl;
+      router.push(redirectTo);
       router.refresh(); // Refresh untuk update server components
     } catch (err) {
       // Network error atau error lainnya

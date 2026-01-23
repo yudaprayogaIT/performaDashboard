@@ -22,6 +22,7 @@ interface LoginRequest {
 interface LoginResponse {
   success: boolean;
   message: string;
+  redirectUrl?: string;
   user?: {
     id: number;
     name: string;
@@ -164,12 +165,79 @@ export async function POST(request: NextRequest) {
     const token = generateToken(tokenPayload);
 
     // -----------------------------------------
+    // 6.5. Determine default redirect based on permissions
+    // -----------------------------------------
+    // Get all permissions for this user
+    const userPermissions = await prisma.permission.findMany({
+      where: {
+        roles: {
+          some: {
+            role: {
+              userRoles: {
+                some: {
+                  userId: user.id,
+                },
+              },
+            },
+          },
+        },
+      },
+      select: {
+        slug: true,
+      },
+    });
+
+    const permissionSlugs = userPermissions.map((p) => p.slug);
+
+    // Determine best landing page based on permissions (priority order)
+    let redirectUrl = "/access-denied"; // Default fallback
+
+    // Priority 1: Dashboard access
+    if (permissionSlugs.includes("view_dashboard")) {
+      redirectUrl = "/dashboard";
+    }
+    // Priority 2: Upload/Data Management access
+    else if (
+      permissionSlugs.some((slug) =>
+        [
+          "upload_omzet",
+          "upload_gross_margin",
+          "upload_retur",
+          "view_upload_history",
+        ].includes(slug),
+      )
+    ) {
+      redirectUrl = "/upload";
+    }
+    // Priority 3: Admin access
+    else if (
+      permissionSlugs.some((slug) =>
+        ["manage_roles", "manage_permissions", "manage_users"].includes(slug),
+      )
+    ) {
+      redirectUrl = "/admin/roles";
+    }
+    // Priority 4: Settings access
+    else if (
+      permissionSlugs.some((slug) =>
+        [
+          "manage_branches",
+          "manage_categories",
+          "manage_targets",
+        ].includes(slug),
+      )
+    ) {
+      redirectUrl = "/settings/branches";
+    }
+
+    // -----------------------------------------
     // 7. Return response dengan cookie
     // -----------------------------------------
     const response = NextResponse.json<LoginResponse>(
       {
         success: true,
         message: "Login berhasil",
+        redirectUrl: redirectUrl,
         user: {
           id: user.id,
           name: user.name,

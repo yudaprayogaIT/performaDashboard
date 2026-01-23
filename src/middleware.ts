@@ -137,13 +137,14 @@ export function middleware(request: NextRequest) {
   // 1. Skip public routes
   // -----------------------------------------
   if (isPublicRoute(pathname)) {
-    // Khusus /login: redirect ke dashboard jika sudah login
+    // Khusus /login: redirect ke root jika sudah login
+    // Root page will determine the appropriate landing page based on permissions
     if (pathname === "/login") {
       const token = request.cookies.get(AUTH_COOKIE_NAME)?.value;
 
       if (hasValidTokenFormat(token)) {
-        // Sudah login, redirect ke dashboard
-        return NextResponse.redirect(new URL("/dashboard", request.url));
+        // Sudah login, redirect ke root untuk auto-redirect ke landing page
+        return NextResponse.redirect(new URL("/", request.url));
       }
     }
 
@@ -182,12 +183,10 @@ export function middleware(request: NextRequest) {
   }
 
   // -----------------------------------------
-  // 5. Role-based redirects untuk authenticated users
+  // 5. Root "/" - will be handled by client-side page
   // -----------------------------------------
-  // Redirect root "/" ke dashboard (for now, until role-based pages are created)
-  if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
+  // Root page fetches landing page from API based on user permissions
+  // and redirects accordingly (dashboard/upload/admin/settings)
 
   // -----------------------------------------
   // 6. User authenticated, continue
