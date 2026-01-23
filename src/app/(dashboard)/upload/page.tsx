@@ -5,7 +5,7 @@ import FileUploader from "@/components/upload/file-uploader";
 import FilePreview from "@/components/upload/file-preview";
 
 // Data type options
-type DataType = "penjualan" | "gross_margin";
+type DataType = "penjualan" | "gross_margin" | "retur";
 
 const dataTypeOptions: {
     value: DataType;
@@ -27,6 +27,13 @@ const dataTypeOptions: {
         description: "Upload data omzet, HPP, dan gross margin",
         templateUrl: "/templates/template_upload_gross_margin.xlsx",
         icon: "trending_up",
+    },
+    {
+        value: "retur",
+        label: "Data Retur",
+        description: "Upload data retur/pengembalian barang",
+        templateUrl: "/templates/template_upload_retur.xlsx",
+        icon: "assignment_return",
     },
 ];
 
@@ -120,7 +127,7 @@ export default function UploadPage() {
                 <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4">
                     Jenis Data yang Diupload
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {dataTypeOptions.map((option) => (
                         <button
                             key={option.value}
@@ -221,11 +228,17 @@ export default function UploadPage() {
                                 <li>• Kolom opsional: catatan</li>
                                 <li>• Sheet: Petunjuk, Data Penjualan, Referensi</li>
                             </ul>
-                        ) : (
+                        ) : selectedDataType === "gross_margin" ? (
                             <ul className="space-y-1 text-xs text-white/60">
                                 <li>• Kolom wajib: tanggal, kode_lokasi, kategori, omzet, hpp, gross_margin</li>
                                 <li>• Kolom opsional: catatan</li>
                                 <li>• gross_margin = omzet - hpp</li>
+                            </ul>
+                        ) : (
+                            <ul className="space-y-1 text-xs text-white/60">
+                                <li>• Kolom wajib: sales_invoice, posting_date, kategori, area, selling_amount, buying_amount</li>
+                                <li>• Area: CABANG atau LOCAL</li>
+                                <li>• Format invoice: RJ-2025-12-0001</li>
                             </ul>
                         )}
                         <a
@@ -264,7 +277,69 @@ export default function UploadPage() {
                     <div>
                         <h4 className="text-sm font-semibold text-white mb-3">Data Preview</h4>
                         <div className="w-full overflow-x-auto rounded-lg border border-white/5 bg-black/20">
-                            {selectedDataType === "penjualan" ? (
+                            {selectedDataType === "retur" ? (
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="border-b border-white/10 bg-white/5">
+                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
+                                                Row
+                                            </th>
+                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
+                                                Sales Invoice
+                                            </th>
+                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
+                                                Posting Date
+                                            </th>
+                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
+                                                Kategori
+                                            </th>
+                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
+                                                Area
+                                            </th>
+                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider text-right">
+                                                Selling Amount
+                                            </th>
+                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider text-right">
+                                                Buying Amount
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="text-sm text-white/80">
+                                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                            <td className="px-4 py-3 font-mono text-xs text-white/40">1</td>
+                                            <td className="px-4 py-3 font-mono">RJ-2025-12-0001</td>
+                                            <td className="px-4 py-3">2025-12-03</td>
+                                            <td className="px-4 py-3">HDP</td>
+                                            <td className="px-4 py-3">
+                                                <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-xs font-bold">
+                                                    CABANG
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 1,540,725</td>
+                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 1,441,477</td>
+                                        </tr>
+                                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                            <td className="px-4 py-3 font-mono text-xs text-white/40">2</td>
+                                            <td className="px-4 py-3 font-mono">RJ-2025-12-0002</td>
+                                            <td className="px-4 py-3">2025-12-11</td>
+                                            <td className="px-4 py-3">PLASTIC</td>
+                                            <td className="px-4 py-3">
+                                                <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs font-bold">
+                                                    LOCAL
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 870,000</td>
+                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 603,098</td>
+                                        </tr>
+                                        <tr className="hover:bg-white/5 transition-colors">
+                                            <td className="px-4 py-3 font-mono text-xs text-white/40">...</td>
+                                            <td className="px-4 py-3 text-white/30 italic" colSpan={6}>
+                                                Previewing 2 of 15,420 rows
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            ) : selectedDataType === "penjualan" ? (
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="border-b border-white/10 bg-white/5">

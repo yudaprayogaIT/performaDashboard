@@ -166,6 +166,8 @@ model Category {
   sales          Sale[]
   targets        Target[]
   dailySummaries SalesDailySummary[]
+  returs         Retur[]
+  grossMargins   GrossMargin[]
 
   @@map("categories")
 }
@@ -373,4 +375,66 @@ enum NotificationType {
   SUCCESS
   WARNING
   ERROR
+}
+
+// =============================================
+// RETUR DATA
+// =============================================
+
+model Retur {
+  id              BigInt       @id @default(autoincrement())
+  salesInvoice    String       @db.VarChar(50) @map("sales_invoice") // RJ-2025-12-0001
+  postingDate     DateTime     @map("posting_date") @db.Date
+  sellingAmount   Decimal      @db.Decimal(20, 2) @map("selling_amount") // Nilai jual yang diretur
+  buyingAmount    Decimal      @db.Decimal(20, 2) @map("buying_amount") // Nilai beli/HPP yang diretur
+  categoryId      Int          @map("category_id")
+  locationType    LocationType @map("location_type") // CABANG or LOKAL
+  uploadBatchId   Int?         @map("upload_batch_id")
+
+  // Audit fields
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy Int?     @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy Int?     @map("updated_by")
+
+  // Relations
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([postingDate])
+  @@index([categoryId])
+  @@index([locationType])
+  @@index([postingDate, locationType])
+  @@map("returs")
+}
+
+// =============================================
+// GROSS MARGIN DATA
+// =============================================
+
+model GrossMargin {
+  id            BigInt       @id @default(autoincrement())
+  recordDate    DateTime     @map("record_date") @db.Date // Tanggal transaksi
+  categoryId    Int          @map("category_id")
+  locationType  LocationType @map("location_type") // CABANG or LOKAL
+  omzetAmount   Decimal      @db.Decimal(20, 2) @map("omzet_amount") // Revenue
+  hppAmount     Decimal      @db.Decimal(20, 2) @map("hpp_amount") // Cost of Goods Sold
+  marginAmount  Decimal      @db.Decimal(20, 2) @map("margin_amount") // Gross Margin = Omzet - HPP
+  marginPercent Decimal      @db.Decimal(5, 2) @map("margin_percent") // Margin % = (Margin / Omzet) * 100
+  uploadBatchId Int?         @map("upload_batch_id")
+
+  // Audit fields
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy Int?     @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy Int?     @map("updated_by")
+
+  // Relations
+  category Category @relation(fields: [categoryId], references: [id])
+
+  @@index([recordDate])
+  @@index([categoryId])
+  @@index([locationType])
+  @@index([recordDate, locationType])
+  @@unique([recordDate, categoryId, locationType], name: "unique_gm_record")
+  @@map("gross_margins")
 }

@@ -33,6 +33,29 @@ export default function DashboardPage() {
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen();
 
+  // Retur data state
+  const [returData, setReturData] = useState<{
+    today: { totalSellingAmount: number; count: number };
+    thisMonth: { totalSellingAmount: number; count: number };
+  } | null>(null);
+
+  // Fetch retur data
+  useEffect(() => {
+    const fetchReturData = async () => {
+      try {
+        const response = await fetch("/api/analytics/retur");
+        const result = await response.json();
+        if (result.success) {
+          setReturData(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching retur data:", error);
+      }
+    };
+
+    fetchReturData();
+  }, []);
+
   // Auto-exit presentation mode when fullscreen is exited (e.g., via ESC key)
   useEffect(() => {
     if (!isFullscreen && isPresentationMode) {
@@ -245,6 +268,87 @@ export default function DashboardPage() {
             icon="calendar_month"
           />
         </div>
+
+        {/* Retur Section */}
+        <div>
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <span className="material-symbols-outlined text-red-400 text-5xl">
+              assignment_return
+            </span>
+            Data Retur
+          </h1>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Retur Hari Ini */}
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-red-500/10 to-transparent p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-red-500/20">
+                  <span className="material-symbols-outlined text-red-400 text-3xl">
+                    calendar_today
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm text-white/50 uppercase tracking-wider">
+                    Retur Hari Ini
+                  </p>
+                  <p className="text-3xl font-bold text-white">
+                    {returData
+                      ? new Intl.NumberFormat("id-ID", {
+                          style: "currency",
+                          currency: "IDR",
+                          minimumFractionDigits: 0,
+                        }).format(returData.today.totalSellingAmount)
+                      : "Loading..."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="material-symbols-outlined text-red-400">
+                receipt_long
+              </span>
+              <span className="text-white/70">
+                {returData ? returData.today.count : 0} transaksi retur
+              </span>
+            </div>
+          </div>
+
+          {/* Retur Bulan Ini */}
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-transparent p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-orange-500/20">
+                  <span className="material-symbols-outlined text-orange-400 text-3xl">
+                    calendar_month
+                  </span>
+                </div>
+                <div>
+                  <p className="text-sm text-white/50 uppercase tracking-wider">
+                    Retur Bulan Ini
+                  </p>
+                  <p className="text-3xl font-bold text-white">
+                    {returData
+                      ? new Intl.NumberFormat("id-ID", {
+                          style: "currency",
+                          currency: "IDR",
+                          minimumFractionDigits: 0,
+                        }).format(returData.thisMonth.totalSellingAmount)
+                      : "Loading..."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="material-symbols-outlined text-orange-400">
+                receipt_long
+              </span>
+              <span className="text-white/70">
+                {returData ? returData.thisMonth.count : 0} transaksi retur
+              </span>
+            </div>
+          </div>
+        </div>
       </div>,
 
       // Section 2: Multi-Period Growth Comparison
@@ -367,6 +471,7 @@ export default function DashboardPage() {
       grossMarginQuarterly,
       grossMarginSemester,
       grossMarginYearly,
+      returData,
     ],
   );
 
@@ -479,6 +584,87 @@ export default function DashboardPage() {
               grossMarginData={grossMarginYearly}
               icon="date_range"
             /> */}
+          </div>
+        </div>
+
+        {/* Retur Section */}
+        <div>
+          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined text-red-400">
+              assignment_return
+            </span>
+            Data Retur
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Retur Hari Ini */}
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-red-500/10 to-transparent p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-red-500/20">
+                    <span className="material-symbols-outlined text-red-400 text-3xl">
+                      calendar_today
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-white/50 uppercase tracking-wider">
+                      Retur Hari Ini
+                    </p>
+                    <p className="text-3xl font-bold text-white">
+                      {returData
+                        ? new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            minimumFractionDigits: 0,
+                          }).format(returData.today.totalSellingAmount)
+                        : "Loading..."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="material-symbols-outlined text-red-400">
+                  receipt_long
+                </span>
+                <span className="text-white/70">
+                  {returData ? returData.today.count : 0} transaksi retur
+                </span>
+              </div>
+            </div>
+
+            {/* Retur Bulan Ini */}
+            <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-orange-500/10 to-transparent p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-orange-500/20">
+                    <span className="material-symbols-outlined text-orange-400 text-3xl">
+                      calendar_month
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-white/50 uppercase tracking-wider">
+                      Retur Bulan Ini
+                    </p>
+                    <p className="text-3xl font-bold text-white">
+                      {returData
+                        ? new Intl.NumberFormat("id-ID", {
+                            style: "currency",
+                            currency: "IDR",
+                            minimumFractionDigits: 0,
+                          }).format(returData.thisMonth.totalSellingAmount)
+                        : "Loading..."}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <span className="material-symbols-outlined text-orange-400">
+                  receipt_long
+                </span>
+                <span className="text-white/70">
+                  {returData ? returData.thisMonth.count : 0} transaksi retur
+                </span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -615,7 +801,7 @@ export default function DashboardPage() {
         sections={carouselSections}
         isActive={isPresentationMode}
         onExit={handleExitPresentationMode}
-        autoPlayInterval={5000}
+        autoPlayInterval={10000}
       />
     </>
   );

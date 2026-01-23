@@ -130,11 +130,11 @@ export default function FullscreenCarousel({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 z-50 overflow-hidden"
+      className="fixed inset-0 bg-gradient-to-br from-[#1A153A] via-[#1c153c] to-[#2C0B52] z-[100] overflow-hidden"
     >
       {/* Current Section */}
-      <div className="h-full w-full overflow-y-hidden">
-        <div className="min-h-full p-8">{sections[currentSection]}</div>
+      <div className="h-full w-full overflow-y-auto">
+        <div className="min-h-full p-8 pb-24">{sections[currentSection]}</div>
       </div>
 
       {/* Controls Overlay */}

@@ -27,6 +27,12 @@ const navItems: NavItem[] = [
     permission: "view_dashboard",
   },
   {
+    label: "Gross Margin",
+    href: "/gross-margin",
+    icon: "trending_up",
+    permission: "view_dashboard",
+  },
+  {
     label: "Reports",
     icon: "analytics",
     permission: "view_dashboard",
