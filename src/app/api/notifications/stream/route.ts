@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   };
 
   // Start polling for notifications
-  let pollInterval: NodeJS.Timeout;
+  let pollInterval: NodeJS.Timeout | undefined;
 
   (async () => {
     try {
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
       });
     } catch (error) {
       console.error('SSE stream error:', error);
-      clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval);
       writer.close();
     }
   })();

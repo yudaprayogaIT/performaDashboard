@@ -4,20 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-
-interface GrossMarginUploadRequest {
-  month: number; // 1-12
-  year: number;
-  data: GrossMarginDataRow[];
-}
-
-interface GrossMarginDataRow {
-  date: string; // "2026-01-15" format
-  categoryCode: string; // "006" for HDP, "017" for PLASTIC
-  area: "CABANG" | "LOKAL";
-  omzetAmount: number;
-  hppAmount: number;
-}
+import { parseGrossMarginExcel } from "@/lib/excel-parser";
 
 interface UploadResponse {
   success: boolean;
@@ -26,16 +13,19 @@ interface UploadResponse {
     totalRows: number;
     deletedRows: number;
     insertedRows: number;
-    updatedRows: number;
+    month: number;
+    year: number;
   };
 }
 
 /**
  * POST /api/upload/gross-margin
  *
- * Full replace strategy untuk upload gross margin data
+ * Full replace strategy untuk upload gross margin data dari Excel
+ * - Parse Excel file
+ * - Extract month/year from data
  * - Delete all gross margin for specified month/year
- * - Insert new data from file
+ * - Batch insert new data (1000 rows per batch)
  * - Calculate margin amount and percentage automatically
  */
 export async function POST(request: NextRequest) {
@@ -59,54 +49,95 @@ export async function POST(request: NextRequest) {
 
     const userId = result.payload.userId;
 
-    // Parse request body
-    const body: GrossMarginUploadRequest = await request.json();
-    const { month, year, data } = body;
+    // Get FormData
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
 
-    // Validation
-    if (!month || !year || !data || !Array.isArray(data)) {
+    if (!file) {
       return NextResponse.json<UploadResponse>(
-        { success: false, message: "Invalid request data" },
+        { success: false, message: "No file provided" },
         { status: 400 }
       );
     }
 
-    if (month < 1 || month > 12) {
+    // Validate file size (max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json<UploadResponse>(
-        { success: false, message: "Invalid month (must be 1-12)" },
+        {
+          success: false,
+          message: `File terlalu besar. Maksimal 10MB (file Anda: ${(file.size / 1024 / 1024).toFixed(2)}MB)`
+        },
         { status: 400 }
       );
     }
 
-    // Get category mapping (code -> id)
+    // Parse Excel file
+    const parseResult = await parseGrossMarginExcel(file);
+
+    if (!parseResult.success || !parseResult.data) {
+      return NextResponse.json<UploadResponse>(
+        {
+          success: false,
+          message: parseResult.errors?.[0] || "Error parsing Excel file"
+        },
+        { status: 400 }
+      );
+    }
+
+    const parsedData = parseResult.data;
+
+    // Validate row count (max 50,000)
+    const MAX_ROWS = 50000;
+    if (parsedData.length > MAX_ROWS) {
+      return NextResponse.json<UploadResponse>(
+        {
+          success: false,
+          message: `Terlalu banyak baris. Maksimal 50,000 baris (file Anda: ${parsedData.length.toLocaleString('id-ID')} baris)`
+        },
+        { status: 400 }
+      );
+    }
+
+    if (parsedData.length === 0) {
+      return NextResponse.json<UploadResponse>(
+        { success: false, message: "File tidak memiliki data valid" },
+        { status: 400 }
+      );
+    }
+
+    // Extract month and year from first record date
+    const firstDate = parsedData[0].recordDate;
+    const month = firstDate.getMonth() + 1;
+    const year = firstDate.getFullYear();
+
+    // Get category mapping (name -> id)
     const categories = await prisma.category.findMany({
       select: { id: true, name: true }
     });
 
-    // Create category code to ID mapping
     const categoryMap = new Map<string, number>();
     categories.forEach(cat => {
-      // Map codes like "006" -> "HDP", "017" -> "PLASTIC"
-      if (cat.name === "HDP") categoryMap.set("006", cat.id);
-      if (cat.name === "PLASTIC") categoryMap.set("017", cat.id);
-      if (cat.name === "ACCESSORIES") categoryMap.set("001", cat.id);
-      if (cat.name === "ACCESSORIES KAKI") categoryMap.set("001A", cat.id);
-      if (cat.name === "FURNITURE") categoryMap.set("002", cat.id);
-      if (cat.name === "BUSA") categoryMap.set("003", cat.id);
-      if (cat.name === "BAHAN KIMIA") categoryMap.set("004", cat.id);
-      if (cat.name === "KAWAT") categoryMap.set("005", cat.id);
-      if (cat.name === "JASA") categoryMap.set("007", cat.id);
-      if (cat.name === "KAIN POLOS SOFA") categoryMap.set("008", cat.id);
-      if (cat.name === "KAIN POLOS SPRINGBED") categoryMap.set("009", cat.id);
-      if (cat.name === "KAIN QUILTING") categoryMap.set("010", cat.id);
-      if (cat.name === "MSP") categoryMap.set("011", cat.id);
-      if (cat.name === "NON WOVEN") categoryMap.set("012", cat.id);
-      if (cat.name === "OTHER") categoryMap.set("013", cat.id);
-      if (cat.name === "PER COIL") categoryMap.set("014", cat.id);
-      if (cat.name === "PITA LIST") categoryMap.set("015", cat.id);
-      if (cat.name === "STAPLESS") categoryMap.set("016", cat.id);
-      // Add more mappings as needed
+      categoryMap.set(cat.name.toUpperCase(), cat.id);
     });
+
+    // Validate all categories exist
+    const missingCategories = new Set<string>();
+    for (const row of parsedData) {
+      if (!categoryMap.has(row.categoryName.toUpperCase())) {
+        missingCategories.add(row.categoryName);
+      }
+    }
+
+    if (missingCategories.size > 0) {
+      return NextResponse.json<UploadResponse>(
+        {
+          success: false,
+          message: `Kategori tidak ditemukan: ${Array.from(missingCategories).join(", ")}`
+        },
+        { status: 400 }
+      );
+    }
 
     // Start transaction
     const result_tx = await prisma.$transaction(async (tx) => {
@@ -123,51 +154,49 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Step 2: Prepare and insert new data
-      const gmDataToInsert: Prisma.GrossMarginCreateManyInput[] = [];
-
-      for (const row of data) {
-        const categoryId = categoryMap.get(row.categoryCode);
-
-        if (!categoryId) {
-          console.warn(`Unknown category code: ${row.categoryCode}, skipping row`);
-          continue;
-        }
-
-        // Calculate margin
+      // Step 2: Prepare data for batch insert
+      // Parser provides omzetAmount (PENCAPAIAN) and marginPercent (%)
+      // Calculate: marginAmount = omzet * marginPercent / 100
+      //            hppAmount = omzet - marginAmount
+      const gmDataToInsert: Prisma.GrossMarginCreateManyInput[] = parsedData.map(row => {
         const omzet = new Prisma.Decimal(row.omzetAmount);
-        const hpp = new Prisma.Decimal(row.hppAmount);
-        const margin = omzet.minus(hpp);
+        const mPercent = new Prisma.Decimal(row.marginPercent);
 
-        // Calculate margin percentage: (margin / omzet) * 100
-        // Handle division by zero
-        let marginPercent = new Prisma.Decimal(0);
-        if (!omzet.equals(0)) {
-          marginPercent = margin.dividedBy(omzet).times(100);
-        }
+        // marginAmount = omzet * marginPercent / 100
+        const marginAmount = omzet.times(mPercent).dividedBy(100);
 
-        gmDataToInsert.push({
-          recordDate: new Date(row.date),
-          categoryId: categoryId,
-          locationType: row.area, // "CABANG" or "LOKAL"
+        // hppAmount = omzet - marginAmount
+        const hppAmount = omzet.minus(marginAmount);
+
+        return {
+          recordDate: row.recordDate,
+          categoryId: categoryMap.get(row.categoryName.toUpperCase())!,
+          locationType: row.locationType,
           omzetAmount: omzet,
-          hppAmount: hpp,
-          marginAmount: margin,
-          marginPercent: marginPercent,
+          hppAmount: hppAmount,
+          marginAmount: marginAmount,
+          marginPercent: mPercent,
           createdBy: userId,
           updatedBy: userId,
-        });
-      }
-
-      // Insert new data
-      const insertResult = await tx.grossMargin.createMany({
-        data: gmDataToInsert,
-        skipDuplicates: true, // Skip if unique constraint violated
+        };
       });
+
+      // Step 3: Batch insert (1000 rows per batch)
+      const BATCH_SIZE = 1000;
+      let totalInserted = 0;
+
+      for (let i = 0; i < gmDataToInsert.length; i += BATCH_SIZE) {
+        const batch = gmDataToInsert.slice(i, i + BATCH_SIZE);
+        const insertResult = await tx.grossMargin.createMany({
+          data: batch,
+          skipDuplicates: true, // Skip if unique constraint violated
+        });
+        totalInserted += insertResult.count;
+      }
 
       return {
         deletedRows: deleteResult.count,
-        insertedRows: insertResult.count,
+        insertedRows: totalInserted,
       };
     });
 
@@ -176,8 +205,8 @@ export async function POST(request: NextRequest) {
       data: {
         userId: userId,
         uploadType: "GROSS_MARGIN",
-        fileName: `gross_margin_${year}_${month}.json`,
-        fileSize: JSON.stringify(data).length,
+        fileName: file.name,
+        fileSize: file.size,
         rowCount: result_tx.insertedRows,
         status: "SUCCESS",
         uploadDate: new Date(year, month - 1, 1),
@@ -187,12 +216,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json<UploadResponse>({
       success: true,
-      message: `Successfully uploaded ${result_tx.insertedRows} gross margin records for ${month}/${year}`,
+      message: `Berhasil mengupload ${result_tx.insertedRows} data gross margin untuk ${month}/${year}`,
       stats: {
-        totalRows: data.length,
+        totalRows: parsedData.length,
         deletedRows: result_tx.deletedRows,
         insertedRows: result_tx.insertedRows,
-        updatedRows: 0,
+        month,
+        year,
       },
     });
 

@@ -4,21 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-
-interface ReturUploadRequest {
-  month: number; // 1-12
-  year: number;
-  data: ReturDataRow[];
-}
-
-interface ReturDataRow {
-  salesInvoice: string; // RJ-2025-12-0001
-  postingDate: string; // "2025-12-03" format
-  sellingAmount: number;
-  buyingAmount: number;
-  categoryCode: string; // "006" for HDP, "017" for PLASTIC
-  area: "CABANG" | "LOKAL";
-}
+import { parseReturExcel } from "@/lib/excel-parser";
 
 interface UploadResponse {
   success: boolean;
@@ -27,15 +13,19 @@ interface UploadResponse {
     totalRows: number;
     deletedRows: number;
     insertedRows: number;
+    month: number;
+    year: number;
   };
 }
 
 /**
  * POST /api/upload/retur
  *
- * Full replace strategy untuk upload retur data
+ * Full replace strategy untuk upload retur data dari Excel
+ * - Parse Excel file
+ * - Extract month/year from data
  * - Delete all retur for specified month/year
- * - Insert new data from file
+ * - Batch insert new data (1000 rows per batch)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -58,43 +48,95 @@ export async function POST(request: NextRequest) {
 
     const userId = result.payload.userId;
 
-    // Parse request body
-    const body: ReturUploadRequest = await request.json();
-    const { month, year, data } = body;
+    // Get FormData
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
 
-    // Validation
-    if (!month || !year || !data || !Array.isArray(data)) {
+    if (!file) {
       return NextResponse.json<UploadResponse>(
-        { success: false, message: "Invalid request data" },
+        { success: false, message: "No file provided" },
         { status: 400 }
       );
     }
 
-    if (month < 1 || month > 12) {
+    // Validate file size (max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json<UploadResponse>(
-        { success: false, message: "Invalid month (must be 1-12)" },
+        {
+          success: false,
+          message: `File terlalu besar. Maksimal 10MB (file Anda: ${(file.size / 1024 / 1024).toFixed(2)}MB)`
+        },
         { status: 400 }
       );
     }
 
-    // Get category mapping (code -> id)
+    // Parse Excel file
+    const parseResult = await parseReturExcel(file);
+
+    if (!parseResult.success || !parseResult.data) {
+      return NextResponse.json<UploadResponse>(
+        {
+          success: false,
+          message: parseResult.errors?.[0] || "Error parsing Excel file"
+        },
+        { status: 400 }
+      );
+    }
+
+    const parsedData = parseResult.data;
+
+    // Validate row count (max 50,000)
+    const MAX_ROWS = 50000;
+    if (parsedData.length > MAX_ROWS) {
+      return NextResponse.json<UploadResponse>(
+        {
+          success: false,
+          message: `Terlalu banyak baris. Maksimal 50,000 baris (file Anda: ${parsedData.length.toLocaleString('id-ID')} baris)`
+        },
+        { status: 400 }
+      );
+    }
+
+    if (parsedData.length === 0) {
+      return NextResponse.json<UploadResponse>(
+        { success: false, message: "File tidak memiliki data valid" },
+        { status: 400 }
+      );
+    }
+
+    // Extract month and year from first posting date
+    const firstDate = parsedData[0].postingDate;
+    const month = firstDate.getMonth() + 1;
+    const year = firstDate.getFullYear();
+
+    // Get category mapping (name -> id)
     const categories = await prisma.category.findMany({
       select: { id: true, name: true }
     });
 
-    // Create category code to ID mapping
-    // Assuming category codes match category names or have a specific mapping
     const categoryMap = new Map<string, number>();
     categories.forEach(cat => {
-      // Map codes like "006" -> "HDP", "017" -> "PLASTIC"
-      // You may need to adjust this based on your actual category structure
-      if (cat.name === "HDP") categoryMap.set("006", cat.id);
-      if (cat.name === "PLASTIC") categoryMap.set("017", cat.id);
-      if (cat.name === "ACCESSORIES") categoryMap.set("001", cat.id);
-      if (cat.name === "FURNITURE") categoryMap.set("002", cat.id);
-      if (cat.name === "BUSA") categoryMap.set("003", cat.id);
-      // Add more mappings as needed
+      categoryMap.set(cat.name.toUpperCase(), cat.id);
     });
+
+    // Validate all categories exist
+    const missingCategories = new Set<string>();
+    for (const row of parsedData) {
+      if (!categoryMap.has(row.categoryName.toUpperCase())) {
+        missingCategories.add(row.categoryName);
+      }
+    }
+
+    if (missingCategories.size > 0) {
+      return NextResponse.json<UploadResponse>(
+        {
+          success: false,
+          message: `Kategori tidak ditemukan: ${Array.from(missingCategories).join(", ")}`
+        },
+        { status: 400 }
+      );
+    }
 
     // Start transaction
     const result_tx = await prisma.$transaction(async (tx) => {
@@ -111,37 +153,33 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Step 2: Prepare and insert new data
-      const returDataToInsert: Prisma.ReturCreateManyInput[] = [];
+      // Step 2: Prepare data for batch insert
+      const returDataToInsert: Prisma.ReturCreateManyInput[] = parsedData.map(row => ({
+        salesInvoice: row.salesInvoice,
+        postingDate: row.postingDate,
+        sellingAmount: new Prisma.Decimal(row.sellingAmount),
+        buyingAmount: new Prisma.Decimal(row.buyingAmount),
+        categoryId: categoryMap.get(row.categoryName.toUpperCase())!,
+        locationType: row.locationType,
+        createdBy: userId,
+        updatedBy: userId,
+      }));
 
-      for (const row of data) {
-        const categoryId = categoryMap.get(row.categoryCode);
+      // Step 3: Batch insert (1000 rows per batch)
+      const BATCH_SIZE = 1000;
+      let totalInserted = 0;
 
-        if (!categoryId) {
-          console.warn(`Unknown category code: ${row.categoryCode}, skipping row`);
-          continue;
-        }
-
-        returDataToInsert.push({
-          salesInvoice: row.salesInvoice,
-          postingDate: new Date(row.postingDate),
-          sellingAmount: new Prisma.Decimal(row.sellingAmount),
-          buyingAmount: new Prisma.Decimal(row.buyingAmount),
-          categoryId: categoryId,
-          locationType: row.area, // "CABANG" or "LOKAL"
-          createdBy: userId,
-          updatedBy: userId,
+      for (let i = 0; i < returDataToInsert.length; i += BATCH_SIZE) {
+        const batch = returDataToInsert.slice(i, i + BATCH_SIZE);
+        const insertResult = await tx.retur.createMany({
+          data: batch,
         });
+        totalInserted += insertResult.count;
       }
-
-      // Insert new data
-      const insertResult = await tx.retur.createMany({
-        data: returDataToInsert,
-      });
 
       return {
         deletedRows: deleteResult.count,
-        insertedRows: insertResult.count,
+        insertedRows: totalInserted,
       };
     });
 
@@ -150,8 +188,8 @@ export async function POST(request: NextRequest) {
       data: {
         userId: userId,
         uploadType: "RETUR",
-        fileName: `retur_${year}_${month}.json`,
-        fileSize: JSON.stringify(data).length,
+        fileName: file.name,
+        fileSize: file.size,
         rowCount: result_tx.insertedRows,
         status: "SUCCESS",
         uploadDate: new Date(year, month - 1, 1),
@@ -161,11 +199,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json<UploadResponse>({
       success: true,
-      message: `Successfully uploaded ${result_tx.insertedRows} retur records for ${month}/${year}`,
+      message: `Berhasil mengupload ${result_tx.insertedRows} data retur untuk ${month}/${year}`,
       stats: {
-        totalRows: data.length,
+        totalRows: parsedData.length,
         deletedRows: result_tx.deletedRows,
         insertedRows: result_tx.insertedRows,
+        month,
+        year,
       },
     });
 

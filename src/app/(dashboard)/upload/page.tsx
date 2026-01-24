@@ -24,7 +24,7 @@ const dataTypeOptions: {
     {
         value: "gross_margin",
         label: "Data Gross Margin",
-        description: "Upload data omzet, HPP, dan gross margin",
+        description: "Upload data pencapaian & margin per kategori",
         templateUrl: "/templates/template_upload_gross_margin.xlsx",
         icon: "trending_up",
     },
@@ -57,12 +57,53 @@ export default function UploadPage() {
         if (!selectedFile) return;
 
         setIsUploading(true);
-        // TODO: Implement actual upload logic based on selectedDataType
-        setTimeout(() => {
+
+        try {
+            // Create FormData
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            // Determine API endpoint based on data type
+            let apiEndpoint = '';
+            if (selectedDataType === 'retur') {
+                apiEndpoint = '/api/upload/retur';
+            } else if (selectedDataType === 'gross_margin') {
+                apiEndpoint = '/api/upload/gross-margin';
+            } else {
+                // penjualan (omzet) - not implemented yet
+                alert('Upload omzet belum diimplementasikan');
+                setIsUploading(false);
+                return;
+            }
+
+            // Send file to API
+            const response = await fetch(apiEndpoint, {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Show success message
+                alert(
+                    `Upload ${currentOption.label} berhasil!\n\n` +
+                    `Total: ${result.stats.totalRows} baris\n` +
+                    `Dihapus: ${result.stats.deletedRows} baris (data lama)\n` +
+                    `Ditambahkan: ${result.stats.insertedRows} baris\n` +
+                    `Bulan/Tahun: ${result.stats.month}/${result.stats.year}`
+                );
+                setSelectedFile(null);
+            } else {
+                // Show error message
+                alert(`Upload gagal:\n${result.message}`);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert(`Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
             setIsUploading(false);
-            alert(`Upload ${currentOption.label} success! (This is a demo)`);
-            setSelectedFile(null);
-        }, 2000);
+        }
     };
 
     return (
@@ -230,15 +271,16 @@ export default function UploadPage() {
                             </ul>
                         ) : selectedDataType === "gross_margin" ? (
                             <ul className="space-y-1 text-xs text-white/60">
-                                <li>• Kolom wajib: tanggal, kode_lokasi, kategori, omzet, hpp, gross_margin</li>
-                                <li>• Kolom opsional: catatan</li>
-                                <li>• gross_margin = omzet - hpp</li>
+                                <li>• Format pivot: 1 baris per kategori</li>
+                                <li>• Kolom: Kategori, Tanggal, CABANG (Pencapaian, %), LOKAL (Pencapaian, %)</li>
+                                <li>• Pencapaian = Omzet, % = Margin Percentage</li>
+                                <li>• HPP & Margin dihitung otomatis dari data</li>
                             </ul>
                         ) : (
                             <ul className="space-y-1 text-xs text-white/60">
-                                <li>• Kolom wajib: sales_invoice, posting_date, kategori, area, selling_amount, buying_amount</li>
-                                <li>• Area: CABANG atau LOCAL</li>
-                                <li>• Format invoice: RJ-2025-12-0001</li>
+                                <li>• Kolom wajib: no_faktur, tanggal_posting, kategori, tipe_lokasi, nilai_jual, nilai_beli</li>
+                                <li>• Tipe Lokasi: LOCAL atau CABANG</li>
+                                <li>• Format faktur: RJ-2026-01-0001</li>
                             </ul>
                         )}
                         <a

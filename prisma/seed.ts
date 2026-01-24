@@ -177,6 +177,11 @@ async function main() {
       sortOrder: 16,
     },
     { name: "FURNITURE", description: "Furniture lengkap", sortOrder: 17 },
+    {
+      name: "ACCESSORIES KAKI",
+      description: "Aksesoris kaki furniture",
+      sortOrder: 18,
+    },
   ];
 
   for (const category of categories) {

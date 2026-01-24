@@ -1,12 +1,25 @@
 // src/app/(auth)/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import LoginForm from "@/components/forms/login-form";
 import type { LoginCredentials } from "@/types/auth";
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="glass-card w-full max-w-[480px] p-8 md:p-10 rounded-2xl flex flex-col gap-6 items-center justify-center min-h-[300px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        <p className="text-white/60">Loading...</p>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
+  );
+}
+
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
