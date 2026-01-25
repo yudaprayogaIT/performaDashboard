@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
 // src/app/admin/users/page.tsx
 
-import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Mail, Calendar, Shield } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Plus, Edit2, Trash2, Mail, Calendar, Shield } from "lucide-react";
 
 interface Role {
   id: number;
@@ -28,10 +28,10 @@ export default function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState({
-    email: '',
-    name: '',
-    password: '',
-    roleId: '',
+    email: "",
+    name: "",
+    password: "",
+    roleId: "",
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
@@ -45,7 +45,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/users');
+      const response = await fetch("/api/admin/users");
       const data = await response.json();
 
       if (data.success) {
@@ -54,8 +54,8 @@ export default function UsersPage() {
         setError(data.message);
       }
     } catch (err) {
-      console.error('Failed to fetch users:', err);
-      setError('Failed to load users');
+      console.error("Failed to fetch users:", err);
+      setError("Failed to load users");
     } finally {
       setLoading(false);
     }
@@ -63,14 +63,14 @@ export default function UsersPage() {
 
   const fetchRoles = async () => {
     try {
-      const response = await fetch('/api/admin/roles');
+      const response = await fetch("/api/admin/roles");
       const data = await response.json();
 
       if (data.success) {
         setRoles(data.roles);
       }
     } catch (err) {
-      console.error('Failed to fetch roles:', err);
+      console.error("Failed to fetch roles:", err);
     }
   };
 
@@ -80,17 +80,17 @@ export default function UsersPage() {
       setFormData({
         email: user.email,
         name: user.name,
-        password: '', // Don't show password
-        roleId: user.roles[0]?.id.toString() || '',
+        password: "", // Don't show password
+        roleId: user.roles[0]?.id.toString() || "",
         isActive: user.isActive,
       });
     } else {
       setEditingUser(null);
       setFormData({
-        email: '',
-        name: '',
-        password: '',
-        roleId: roles[0]?.id.toString() || '',
+        email: "",
+        name: "",
+        password: "",
+        roleId: roles[0]?.id.toString() || "",
         isActive: true,
       });
     }
@@ -110,9 +110,11 @@ export default function UsersPage() {
     setError(null);
 
     try {
-      const url = editingUser ? `/api/admin/users/${editingUser.id}` : '/api/admin/users';
+      const url = editingUser
+        ? `/api/admin/users/${editingUser.id}`
+        : "/api/admin/users";
 
-      const method = editingUser ? 'PATCH' : 'POST';
+      const method = editingUser ? "PATCH" : "POST";
 
       // For edit, only include password if it's filled
       const payload = editingUser
@@ -127,7 +129,7 @@ export default function UsersPage() {
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
@@ -140,8 +142,8 @@ export default function UsersPage() {
         setError(data.message);
       }
     } catch (err) {
-      console.error('Submit error:', err);
-      setError('Failed to save user');
+      console.error("Submit error:", err);
+      setError("Failed to save user");
     } finally {
       setSubmitting(false);
     }
@@ -154,7 +156,7 @@ export default function UsersPage() {
 
     try {
       const response = await fetch(`/api/admin/users/${user.id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       const data = await response.json();
@@ -165,19 +167,19 @@ export default function UsersPage() {
         alert(data.message);
       }
     } catch (err) {
-      console.error('Delete error:', err);
-      alert('Failed to delete user');
+      console.error("Delete error:", err);
+      alert("Failed to delete user");
     }
   };
 
   const getRoleBadgeColor = (roleName: string) => {
     const colors: Record<string, string> = {
-      ADMINISTRATOR: 'bg-red-500/20 text-red-400',
-      DIREKTUR: 'bg-blue-500/20 text-blue-400',
-      MARKETING: 'bg-green-500/20 text-green-400',
-      ACCOUNTING: 'bg-yellow-500/20 text-yellow-400',
+      ADMINISTRATOR: "bg-red-500/20 text-red-400",
+      DIREKTUR: "bg-blue-500/20 text-blue-400",
+      MARKETING: "bg-green-500/20 text-green-400",
+      ACCOUNTING: "bg-yellow-500/20 text-yellow-400",
     };
-    return colors[roleName] || 'bg-gray-500/20 text-gray-400';
+    return colors[roleName] || "bg-gray-500/20 text-gray-400";
   };
 
   if (loading) {
@@ -195,7 +197,9 @@ export default function UsersPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-white">User Management</h1>
-            <p className="text-white/60 mt-1">Manage system users and their roles</p>
+            <p className="text-white/60 mt-1">
+              Manage system users and their roles
+            </p>
           </div>
           <button
             onClick={() => handleOpenModal()}
@@ -222,7 +226,9 @@ export default function UsersPage() {
                 </span>
               </div>
               <div>
-                <div className="text-2xl font-bold text-white">{users.length}</div>
+                <div className="text-2xl font-bold text-white">
+                  {users.length}
+                </div>
                 <div className="text-sm text-white/60">Total Users</div>
               </div>
             </div>
@@ -267,12 +273,24 @@ export default function UsersPage() {
             <table className="w-full">
               <thead>
                 <tr className="text-left border-b border-white/10 bg-white/5">
-                  <th className="px-6 py-4 text-sm font-medium text-white/60">User</th>
-                  <th className="px-6 py-4 text-sm font-medium text-white/60">Email</th>
-                  <th className="px-6 py-4 text-sm font-medium text-white/60">Role</th>
-                  <th className="px-6 py-4 text-sm font-medium text-white/60">Status</th>
-                  <th className="px-6 py-4 text-sm font-medium text-white/60">Created</th>
-                  <th className="px-6 py-4 text-sm font-medium text-white/60 text-right">Actions</th>
+                  <th className="px-6 py-4 text-sm font-medium text-white/60">
+                    User
+                  </th>
+                  <th className="px-6 py-4 text-sm font-medium text-white/60">
+                    Email
+                  </th>
+                  <th className="px-6 py-4 text-sm font-medium text-white/60">
+                    Role
+                  </th>
+                  <th className="px-6 py-4 text-sm font-medium text-white/60">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-sm font-medium text-white/60">
+                    Created
+                  </th>
+                  <th className="px-6 py-4 text-sm font-medium text-white/60 text-right">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -286,15 +304,17 @@ export default function UsersPage() {
                         <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-cyan-400 flex items-center justify-center">
                           <span className="text-white font-bold text-sm">
                             {user.name
-                              .split(' ')
+                              .split(" ")
                               .map((n) => n[0])
-                              .join('')
+                              .join("")
                               .toUpperCase()
                               .slice(0, 2)}
                           </span>
                         </div>
                         <div>
-                          <div className="text-white font-medium">{user.name}</div>
+                          <div className="text-white font-medium">
+                            {user.name}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -310,7 +330,7 @@ export default function UsersPage() {
                           <span
                             key={role.id}
                             className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getRoleBadgeColor(
-                              role.name
+                              role.name,
                             )}`}
                           >
                             <Shield className="w-3 h-3" />
@@ -362,7 +382,10 @@ export default function UsersPage() {
 
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-white/40">
+                    <td
+                      colSpan={6}
+                      className="px-6 py-12 text-center text-white/40"
+                    >
                       No users found
                     </td>
                   </tr>
@@ -378,16 +401,20 @@ export default function UsersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="glass-card w-full max-w-md rounded-2xl p-6">
             <h2 className="text-xl font-bold text-white mb-4">
-              {editingUser ? 'Edit User' : 'Add User'}
+              {editingUser ? "Edit User" : "Add User"}
             </h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">Name *</label>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Name *
+                </label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary/50"
                   placeholder="John Doe"
                   required
@@ -395,11 +422,15 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">Email *</label>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Email *
+                </label>
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary/50"
                   placeholder="john@example.com"
                   required
@@ -408,13 +439,15 @@ export default function UsersPage() {
 
               <div>
                 <label className="block text-sm font-medium text-white/80 mb-2">
-                  Password {editingUser && '(leave empty to keep current)'}
-                  {!editingUser && ' *'}
+                  Password {editingUser && "(leave empty to keep current)"}
+                  {!editingUser && " *"}
                 </label>
                 <input
                   type="password"
                   value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary/50"
                   placeholder="••••••••"
                   required={!editingUser}
@@ -422,11 +455,15 @@ export default function UsersPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-white/80 mb-2">Role *</label>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Role *
+                </label>
                 <select
                   value={formData.roleId}
-                  onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary/50"
+                  onChange={(e) =>
+                    setFormData({ ...formData, roleId: e.target.value })
+                  }
+                  className="w-full px-4 py-2 bg-[#282146] border border-white/10 rounded-lg text-white focus:outline-none focus:border-primary/50"
                   required
                 >
                   <option value="">Select a role</option>
@@ -443,7 +480,9 @@ export default function UsersPage() {
                   type="checkbox"
                   id="isActive"
                   checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isActive: e.target.checked })
+                  }
                   className="w-4 h-4 rounded border-white/10 bg-white/5 text-primary focus:ring-primary"
                 />
                 <label htmlFor="isActive" className="text-sm text-white/80">
@@ -471,7 +510,7 @@ export default function UsersPage() {
                   className="flex-1 px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors disabled:opacity-50"
                   disabled={submitting}
                 >
-                  {submitting ? 'Saving...' : editingUser ? 'Update' : 'Create'}
+                  {submitting ? "Saving..." : editingUser ? "Update" : "Create"}
                 </button>
               </div>
             </form>

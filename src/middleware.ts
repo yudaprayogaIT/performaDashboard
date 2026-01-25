@@ -29,6 +29,9 @@ const protectedApiPrefixes = [
   "/api/upload",
   "/api/notifications",
   "/api/admin",
+  "/api/data",
+  "/api/targets",
+  "/api/analytics",
 ];
 
 // ============================================

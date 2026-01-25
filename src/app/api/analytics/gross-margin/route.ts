@@ -16,7 +16,7 @@ interface GrossMarginAnalytics {
     byCategory: CategoryGM[];
     byArea: {
       CABANG: AreaGM;
-      LOKAL: AreaGM;
+      LOCAL: AreaGM;
     };
     byCategoryAndArea: CategoryAreaGM[];
     alerts: {
@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
 
     // Aggregate by area
     const areaCABANG = { omzet: 0, hpp: 0, margin: 0, marginPercent: 0 };
-    const areaLOKAL = { omzet: 0, hpp: 0, margin: 0, marginPercent: 0 };
+    const areaLOCAL = { omzet: 0, hpp: 0, margin: 0, marginPercent: 0 };
 
     grossMargins.forEach((gm) => {
       if (gm.locationType === "CABANG") {
@@ -160,16 +160,16 @@ export async function GET(request: NextRequest) {
         areaCABANG.hpp += Number(gm.hppAmount);
         areaCABANG.margin += Number(gm.marginAmount);
       } else {
-        areaLOKAL.omzet += Number(gm.omzetAmount);
-        areaLOKAL.hpp += Number(gm.hppAmount);
-        areaLOKAL.margin += Number(gm.marginAmount);
+        areaLOCAL.omzet += Number(gm.omzetAmount);
+        areaLOCAL.hpp += Number(gm.hppAmount);
+        areaLOCAL.margin += Number(gm.marginAmount);
       }
     });
 
     areaCABANG.marginPercent =
       areaCABANG.omzet > 0 ? (areaCABANG.margin / areaCABANG.omzet) * 100 : 0;
-    areaLOKAL.marginPercent =
-      areaLOKAL.omzet > 0 ? (areaLOKAL.margin / areaLOKAL.omzet) * 100 : 0;
+    areaLOCAL.marginPercent =
+      areaLOCAL.omzet > 0 ? (areaLOCAL.margin / areaLOCAL.omzet) * 100 : 0;
 
     // Aggregate by category and area
     const catAreaMap = new Map<string, CategoryAreaGM>();
@@ -218,7 +218,7 @@ export async function GET(request: NextRequest) {
         byCategory,
         byArea: {
           CABANG: areaCABANG,
-          LOKAL: areaLOKAL,
+          LOCAL: areaLOCAL,
         },
         byCategoryAndArea,
         alerts: {

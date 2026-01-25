@@ -50,6 +50,7 @@ const navItems: NavItem[] = [
       "upload_gross_margin",
       "upload_retur",
       "view_upload_history",
+      "view_all_uploads",
     ],
     children: [
       {
@@ -57,6 +58,17 @@ const navItems: NavItem[] = [
         href: "/upload",
         icon: "cloud_upload",
         anyPermissions: ["upload_omzet", "upload_gross_margin", "upload_retur"],
+      },
+      {
+        label: "Review Data",
+        href: "/data",
+        icon: "table_view",
+        anyPermissions: [
+          "view_all_uploads",
+          "upload_omzet",
+          "upload_gross_margin",
+          "upload_retur",
+        ],
       },
       {
         label: "Riwayat Upload",
