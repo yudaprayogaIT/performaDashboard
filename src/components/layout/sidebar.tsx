@@ -33,16 +33,6 @@ const navItems: NavItem[] = [
     permission: "view_dashboard",
   },
   {
-    label: "Reports",
-    icon: "analytics",
-    permission: "view_dashboard",
-    children: [
-      { label: "Sales Local", href: "/reports/local", icon: "store" },
-      { label: "Sales Cabang", href: "/reports/cabang", icon: "storefront" },
-      { label: "Per Kategori", href: "/reports/kategori", icon: "category" },
-    ],
-  },
-  {
     label: "Data Management",
     icon: "folder_data",
     anyPermissions: [
@@ -74,7 +64,12 @@ const navItems: NavItem[] = [
         label: "Riwayat Upload",
         href: "/upload/history",
         icon: "history",
-        permission: "view_upload_history",
+        anyPermissions: [
+          "view_all_uploads",
+          "upload_omzet",
+          "upload_gross_margin",
+          "upload_retur",
+        ],
       },
     ],
   },
@@ -86,19 +81,20 @@ const navItems: NavItem[] = [
       "manage_locations",
       "manage_categories",
       "manage_targets",
+      "manage_branches",
     ],
     children: [
-      {
-        label: "Master Users",
-        href: "/settings/users",
-        icon: "people",
-        permission: "manage_users",
-      },
+      // {
+      //   label: "Master Users",
+      //   href: "/settings/users",
+      //   icon: "people",
+      //   permission: "manage_users",
+      // },
       {
         label: "Master Branches",
         href: "/settings/branches",
         icon: "storefront",
-        permission: "manage_locations",
+        permission: "manage_branches",
       },
       {
         label: "Master Kategori",

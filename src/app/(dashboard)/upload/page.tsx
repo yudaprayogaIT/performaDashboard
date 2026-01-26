@@ -7,6 +7,21 @@ import FilePreview from "@/components/upload/file-preview";
 // Data type options
 type DataType = "penjualan" | "gross_margin" | "retur";
 
+// Modal state type
+interface ModalState {
+    isOpen: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+    stats?: {
+        totalRows: number;
+        deletedRows: number;
+        insertedRows: number;
+        month: number;
+        year: number;
+    };
+}
+
 const dataTypeOptions: {
     value: DataType;
     label: string;
@@ -42,8 +57,18 @@ export default function UploadPage() {
     const [isUploading, setIsUploading] = useState(false);
     const [selectedDataType, setSelectedDataType] = useState<DataType>("penjualan");
     const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+    const [modal, setModal] = useState<ModalState>({
+        isOpen: false,
+        type: 'success',
+        title: '',
+        message: '',
+    });
 
     const currentOption = dataTypeOptions.find((opt) => opt.value === selectedDataType)!;
+
+    const closeModal = () => {
+        setModal(prev => ({ ...prev, isOpen: false }));
+    };
 
     const handleFileSelect = (file: File) => {
         setSelectedFile(file);
@@ -64,17 +89,12 @@ export default function UploadPage() {
             formData.append('file', selectedFile);
 
             // Determine API endpoint based on data type
-            let apiEndpoint = '';
-            if (selectedDataType === 'retur') {
-                apiEndpoint = '/api/upload/retur';
-            } else if (selectedDataType === 'gross_margin') {
-                apiEndpoint = '/api/upload/gross-margin';
-            } else {
-                // penjualan (omzet) - not implemented yet
-                alert('Upload omzet belum diimplementasikan');
-                setIsUploading(false);
-                return;
-            }
+            const apiEndpoints: Record<DataType, string> = {
+                penjualan: '/api/upload/penjualan',
+                gross_margin: '/api/upload/gross-margin',
+                retur: '/api/upload/retur',
+            };
+            const apiEndpoint = apiEndpoints[selectedDataType];
 
             // Send file to API
             const response = await fetch(apiEndpoint, {
@@ -85,22 +105,32 @@ export default function UploadPage() {
             const result = await response.json();
 
             if (result.success) {
-                // Show success message
-                alert(
-                    `Upload ${currentOption.label} berhasil!\n\n` +
-                    `Total: ${result.stats.totalRows} baris\n` +
-                    `Dihapus: ${result.stats.deletedRows} baris (data lama)\n` +
-                    `Ditambahkan: ${result.stats.insertedRows} baris\n` +
-                    `Bulan/Tahun: ${result.stats.month}/${result.stats.year}`
-                );
+                // Show success modal
+                setModal({
+                    isOpen: true,
+                    type: 'success',
+                    title: `Upload ${currentOption.label} Berhasil!`,
+                    message: result.message,
+                    stats: result.stats,
+                });
                 setSelectedFile(null);
             } else {
-                // Show error message
-                alert(`Upload gagal:\n${result.message}`);
+                // Show error modal
+                setModal({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Upload Gagal',
+                    message: result.message,
+                });
             }
         } catch (error) {
             console.error('Upload error:', error);
-            alert(`Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Upload Error',
+                message: error instanceof Error ? error.message : 'Terjadi kesalahan saat upload',
+            });
         } finally {
             setIsUploading(false);
         }
@@ -528,6 +558,87 @@ export default function UploadPage() {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowTemplateDropdown(false)}
                 />
+            )}
+
+            {/* Result Modal */}
+            {modal.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                        onClick={closeModal}
+                    />
+                    {/* Modal Content */}
+                    <div className="relative bg-gray-900 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+                        {/* Header */}
+                        <div className={`p-6 ${modal.type === 'success' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`flex h-14 w-14 items-center justify-center rounded-full ${
+                                    modal.type === 'success' ? 'bg-green-500/20' : 'bg-red-500/20'
+                                }`}>
+                                    <span className={`material-symbols-outlined text-3xl ${
+                                        modal.type === 'success' ? 'text-green-400' : 'text-red-400'
+                                    }`}>
+                                        {modal.type === 'success' ? 'check_circle' : 'error'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">{modal.title}</h3>
+                                    <p className="text-sm text-white/60 mt-1">{modal.message}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Stats (only for success) */}
+                        {modal.type === 'success' && modal.stats && (
+                            <div className="p-6 border-t border-white/10">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="bg-white/5 rounded-xl p-4">
+                                        <p className="text-xs text-white/50 uppercase tracking-wider">Total Baris</p>
+                                        <p className="text-2xl font-bold text-white mt-1">
+                                            {modal.stats.totalRows.toLocaleString('id-ID')}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-xl p-4">
+                                        <p className="text-xs text-white/50 uppercase tracking-wider">Ditambahkan</p>
+                                        <p className="text-2xl font-bold text-green-400 mt-1">
+                                            {modal.stats.insertedRows.toLocaleString('id-ID')}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-xl p-4">
+                                        <p className="text-xs text-white/50 uppercase tracking-wider">Data Lama Dihapus</p>
+                                        <p className="text-2xl font-bold text-orange-400 mt-1">
+                                            {modal.stats.deletedRows.toLocaleString('id-ID')}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-xl p-4">
+                                        <p className="text-xs text-white/50 uppercase tracking-wider">Periode</p>
+                                        <p className="text-2xl font-bold text-primary mt-1">
+                                            {modal.stats.month}/{modal.stats.year}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-white/40 mt-4 text-center">
+                                    * Data lama untuk periode yang sama akan diganti dengan data baru
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Footer */}
+                        <div className="p-6 border-t border-white/10 flex justify-end">
+                            <button
+                                onClick={closeModal}
+                                className={`px-6 py-2.5 rounded-xl font-bold transition-all ${
+                                    modal.type === 'success'
+                                        ? 'bg-green-500 hover:bg-green-600 text-white'
+                                        : 'bg-red-500 hover:bg-red-600 text-white'
+                                }`}
+                            >
+                                OK
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

@@ -279,7 +279,7 @@ export default function TargetsPage() {
             Rp {formatCurrency(totalTarget)}
           </p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-emerald-500/10 border-emerald-500/30 p-4">
+        <div className="rounded-xl border bg-emerald-500/10 border-emerald-500/30 p-4">
           <p className="text-xs text-emerald-300 uppercase tracking-wider mb-1">
             Kategori Terisi
           </p>
@@ -287,7 +287,7 @@ export default function TargetsPage() {
             {filledCount} / {targets.length}
           </p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-blue-500/10 border-blue-500/30 p-4">
+        <div className="rounded-xl border bg-blue-500/10 border-blue-500/30 p-4">
           <p className="text-xs text-blue-300 uppercase tracking-wider mb-1">
             Periode
           </p>

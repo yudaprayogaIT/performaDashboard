@@ -13,10 +13,9 @@ import PeriodSelector, {
   type PeriodType,
 } from "@/components/dashboard/period-selector";
 import { useFullscreen } from "@/hooks/useFullscreen";
-import { mockCategories, mockSummary } from "@/lib/mock-data";
+import type { CategorySales, DashboardSummary } from "@/types/sales";
+import type { DailySales } from "@/lib/mock-data-daily";
 import {
-  generateDailySalesData,
-  mockDailyCategorySales,
   calculateComparison,
   calculateCalendarComparison,
 } from "@/lib/mock-data-daily";
@@ -26,12 +25,30 @@ import {
   getChartTitle,
 } from "@/lib/data-aggregator";
 
+// Default empty summary for initial state
+const defaultSummary: DashboardSummary = {
+  totalTarget: 0,
+  totalOmzet: 0,
+  totalPencapaian: 0,
+  localTarget: 0,
+  localOmzet: 0,
+  localPencapaian: 0,
+  cabangTarget: 0,
+  cabangOmzet: 0,
+  cabangPencapaian: 0,
+};
+
 export default function DashboardPage() {
-  const [selectedMonth, setSelectedMonth] = useState(1);
-  const [selectedYear, setSelectedYear] = useState(2026);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>("daily");
   const [isPresentationMode, setIsPresentationMode] = useState(false);
   const { isFullscreen, toggleFullscreen, exitFullscreen } = useFullscreen();
+
+  // Dashboard data state (real data from API)
+  const [categories, setCategories] = useState<CategorySales[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary>(defaultSummary);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Retur data state
   const [returData, setReturData] = useState<{
@@ -39,11 +56,39 @@ export default function DashboardPage() {
     thisMonth: { totalSellingAmount: number; count: number };
   } | null>(null);
 
+  // Sales trend data state (real data from API)
+  const [salesTrend, setSalesTrend] = useState<DailySales[]>([]);
+
+  // Fetch dashboard data (targets and sales)
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(
+          `/api/analytics/dashboard?year=${selectedYear}&month=${selectedMonth}`
+        );
+        const result = await response.json();
+        if (result.success) {
+          setCategories(result.data.categories);
+          setSummary(result.data.summary);
+        }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [selectedYear, selectedMonth]);
+
   // Fetch retur data
   useEffect(() => {
     const fetchReturData = async () => {
       try {
-        const response = await fetch("/api/analytics/retur");
+        const response = await fetch(
+          `/api/analytics/retur?month=${selectedMonth}&year=${selectedYear}`
+        );
         const result = await response.json();
         if (result.success) {
           setReturData(result.data);
@@ -54,7 +99,28 @@ export default function DashboardPage() {
     };
 
     fetchReturData();
-  }, []);
+  }, [selectedMonth, selectedYear]);
+
+  // Fetch sales trend data
+  useEffect(() => {
+    const fetchSalesTrend = async () => {
+      try {
+        // Get enough data for all period types (730 days = 2 years)
+        const daysNeeded = getDataRangeForPeriod(selectedPeriod);
+        const response = await fetch(
+          `/api/analytics/sales-trend?days=${Math.max(daysNeeded, 730)}`
+        );
+        const result = await response.json();
+        if (result.success) {
+          setSalesTrend(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching sales trend:", error);
+      }
+    };
+
+    fetchSalesTrend();
+  }, [selectedPeriod]);
 
   // Auto-exit presentation mode when fullscreen is exited (e.g., via ESC key)
   useEffect(() => {
@@ -63,99 +129,79 @@ export default function DashboardPage() {
     }
   }, [isFullscreen, isPresentationMode]);
 
-  // Generate data based on selected period range
-  const rawDailySales = useMemo(() => {
-    const daysNeeded = getDataRangeForPeriod(selectedPeriod);
-    return generateDailySalesData(daysNeeded);
-  }, [selectedPeriod]);
-
-  // Aggregate data by selected period
+  // Aggregate data by selected period using real data
   const aggregatedData = useMemo(() => {
-    return aggregateDataByPeriod(rawDailySales, selectedPeriod);
-  }, [rawDailySales, selectedPeriod]);
+    if (salesTrend.length === 0) return [];
+    return aggregateDataByPeriod(salesTrend, selectedPeriod);
+  }, [salesTrend, selectedPeriod]);
 
-  // Calculate comparisons (generate enough data for all periods: 730 days = 2 years)
-  const mockDailySales = useMemo(() => generateDailySalesData(730), []);
-
-  // Daily comparison (today vs yesterday)
-  const comparisonDaily = calculateComparison(mockDailySales, "total", 1);
-  const grossMarginDaily = calculateComparison(
-    mockDailySales,
-    "totalGrossMargin",
-    1,
+  // Daily comparison (today vs yesterday) - using real data
+  const comparisonDaily = useMemo(
+    () => calculateComparison(salesTrend, "total", 1),
+    [salesTrend]
+  );
+  const grossMarginDaily = useMemo(
+    () => calculateComparison(salesTrend, "totalGrossMargin", 1),
+    [salesTrend]
   );
 
   // Weekly comparison (current week Mon-Sun vs previous week Mon-Sun)
-  const comparisonWeekly = calculateCalendarComparison(
-    mockDailySales,
-    "total",
-    "weekly",
+  const comparisonWeekly = useMemo(
+    () => calculateCalendarComparison(salesTrend, "total", "weekly"),
+    [salesTrend]
   );
-  const grossMarginWeekly = calculateCalendarComparison(
-    mockDailySales,
-    "totalGrossMargin",
-    "weekly",
+  const grossMarginWeekly = useMemo(
+    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "weekly"),
+    [salesTrend]
   );
 
   // Monthly comparison (current month 1st-end vs previous month 1st-end)
-  const comparisonMonthly = calculateCalendarComparison(
-    mockDailySales,
-    "total",
-    "monthly",
+  const comparisonMonthly = useMemo(
+    () => calculateCalendarComparison(salesTrend, "total", "monthly"),
+    [salesTrend]
   );
-  const grossMarginMonthly = calculateCalendarComparison(
-    mockDailySales,
-    "totalGrossMargin",
-    "monthly",
+  const grossMarginMonthly = useMemo(
+    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "monthly"),
+    [salesTrend]
   );
 
   // Quarterly comparison (current quarter vs previous quarter)
-  // Q1: Jan-Mar, Q2: Apr-Jun, Q3: Jul-Sep, Q4: Oct-Dec
-  const comparisonQuarterly = calculateCalendarComparison(
-    mockDailySales,
-    "total",
-    "quarterly",
+  const comparisonQuarterly = useMemo(
+    () => calculateCalendarComparison(salesTrend, "total", "quarterly"),
+    [salesTrend]
   );
-  const grossMarginQuarterly = calculateCalendarComparison(
-    mockDailySales,
-    "totalGrossMargin",
-    "quarterly",
+  const grossMarginQuarterly = useMemo(
+    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "quarterly"),
+    [salesTrend]
   );
 
   // Semester comparison (current semester vs previous semester)
-  // S1: Jan-Jun, S2: Jul-Dec
-  const comparisonSemester = calculateCalendarComparison(
-    mockDailySales,
-    "total",
-    "semester",
+  const comparisonSemester = useMemo(
+    () => calculateCalendarComparison(salesTrend, "total", "semester"),
+    [salesTrend]
   );
-  const grossMarginSemester = calculateCalendarComparison(
-    mockDailySales,
-    "totalGrossMargin",
-    "semester",
+  const grossMarginSemester = useMemo(
+    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "semester"),
+    [salesTrend]
   );
 
   // Yearly comparison (current year Jan-Dec vs previous year Jan-Dec)
-  const comparisonYearly = calculateCalendarComparison(
-    mockDailySales,
-    "total",
-    "yearly",
+  const comparisonYearly = useMemo(
+    () => calculateCalendarComparison(salesTrend, "total", "yearly"),
+    [salesTrend]
   );
-  const grossMarginYearly = calculateCalendarComparison(
-    mockDailySales,
-    "totalGrossMargin",
-    "yearly",
+  const grossMarginYearly = useMemo(
+    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "yearly"),
+    [salesTrend]
   );
 
-  const comparisonLocalVsYesterday = calculateComparison(
-    mockDailySales,
-    "local",
-    1,
+  const comparisonLocalVsYesterday = useMemo(
+    () => calculateComparison(salesTrend, "local", 1),
+    [salesTrend]
   );
-  const comparisonCabangVsYesterday = calculateComparison(
-    mockDailySales,
-    "cabang",
-    1,
+  const comparisonCabangVsYesterday = useMemo(
+    () => calculateComparison(salesTrend, "cabang", 1),
+    [salesTrend]
   );
 
   // Handle entering presentation mode
@@ -185,26 +231,26 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatsCard
-            title="Total Sales 2026"
-            value={mockSummary.totalOmzet}
-            target={mockSummary.totalTarget}
-            percentage={mockSummary.totalPencapaian}
+            title={`Total Sales ${selectedYear}`}
+            value={summary.totalOmzet}
+            target={summary.totalTarget}
+            percentage={summary.totalPencapaian}
             icon="payments"
             variant="primary"
           />
           <StatsCard
             title="Sales Local (Bogor)"
-            value={mockSummary.localOmzet}
-            target={mockSummary.localTarget}
-            percentage={mockSummary.localPencapaian}
+            value={summary.localOmzet}
+            target={summary.localTarget}
+            percentage={summary.localPencapaian}
             icon="store"
             variant="success"
           />
           <StatsCard
             title="Sales Cabang"
-            value={mockSummary.cabangOmzet}
-            target={mockSummary.cabangTarget}
-            percentage={mockSummary.cabangPencapaian}
+            value={summary.cabangOmzet}
+            target={summary.cabangTarget}
+            percentage={summary.cabangPencapaian}
             icon="storefront"
             variant="default"
           />
@@ -434,7 +480,7 @@ export default function DashboardPage() {
           </h1>
         </div>
         <CategoryAchievementPie
-          categories={mockCategories}
+          categories={categories}
           type="local"
           title=""
         />
@@ -448,7 +494,7 @@ export default function DashboardPage() {
           </h1>
         </div>
         <CategoryAchievementPie
-          categories={mockCategories}
+          categories={categories}
           type="cabang"
           title=""
         />
@@ -472,6 +518,8 @@ export default function DashboardPage() {
       grossMarginSemester,
       grossMarginYearly,
       returData,
+      categories,
+      summary,
     ],
   );
 
@@ -508,26 +556,26 @@ export default function DashboardPage() {
         {/* Summary Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatsCard
-            title="Total Sales 2026"
-            value={mockSummary.totalOmzet}
-            target={mockSummary.totalTarget}
-            percentage={mockSummary.totalPencapaian}
+            title={`Total Sales ${selectedYear}`}
+            value={summary.totalOmzet}
+            target={summary.totalTarget}
+            percentage={summary.totalPencapaian}
             icon="payments"
             variant="primary"
           />
           <StatsCard
             title="Sales Local (Bogor)"
-            value={mockSummary.localOmzet}
-            target={mockSummary.localTarget}
-            percentage={mockSummary.localPencapaian}
+            value={summary.localOmzet}
+            target={summary.localTarget}
+            percentage={summary.localPencapaian}
             icon="store"
             variant="success"
           />
           <StatsCard
             title="Sales Cabang"
-            value={mockSummary.cabangOmzet}
-            target={mockSummary.cabangTarget}
-            percentage={mockSummary.cabangPencapaian}
+            value={summary.cabangOmzet}
+            target={summary.cabangTarget}
+            percentage={summary.cabangPencapaian}
             icon="storefront"
             variant="default"
           />
@@ -740,7 +788,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-        <CategoryTable categories={mockCategories} />
+        <CategoryTable categories={categories} />
       </div> */}
 
         {/* Category Achievement by Location */}
@@ -754,14 +802,14 @@ export default function DashboardPage() {
 
           {/* LOCAL Achievement */}
           <CategoryAchievementPie
-            categories={mockCategories}
+            categories={categories}
             type="local"
             title="LOCAL Achievement (Bogor & Sekitar)"
           />
 
           {/* CABANG Achievement */}
           <CategoryAchievementPie
-            categories={mockCategories}
+            categories={categories}
             type="cabang"
             title="CABANG Achievement (Luar Bogor)"
           />

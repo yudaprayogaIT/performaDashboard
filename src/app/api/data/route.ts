@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
         whereClause.locationType = locationTypeParam as LocationType;
       }
 
-      // Get paginated data
+      // Get paginated gross margin data
       const grossMargins = await prisma.grossMargin.findMany({
         where: whereClause,
         include: {
@@ -157,7 +157,6 @@ export async function GET(request: NextRequest) {
       const summaryData = await prisma.grossMargin.aggregate({
         where: whereClause,
         _sum: { omzetAmount: true, hppAmount: true, marginAmount: true },
-        _avg: { marginPercent: true },
         _count: true,
       });
 
@@ -172,12 +171,15 @@ export async function GET(request: NextRequest) {
         marginPercent: Number(gm.marginPercent),
       }));
 
+      const totalOmzet = Number(summaryData._sum.omzetAmount || 0);
+      const totalMargin = Number(summaryData._sum.marginAmount || 0);
+
       summary = {
         totalRecords: summaryData._count,
-        totalOmzet: Number(summaryData._sum.omzetAmount || 0),
+        totalOmzet,
         totalHpp: Number(summaryData._sum.hppAmount || 0),
-        totalMargin: Number(summaryData._sum.marginAmount || 0),
-        avgMarginPercent: Number(summaryData._avg.marginPercent || 0),
+        totalMargin,
+        avgMarginPercent: totalOmzet > 0 ? (totalMargin / totalOmzet) * 100 : 0,
       };
     } else if (type === "retur") {
       // Build where clause for Retur

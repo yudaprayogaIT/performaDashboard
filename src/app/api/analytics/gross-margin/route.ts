@@ -101,6 +101,7 @@ export async function GET(request: NextRequest) {
       include: {
         category: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -109,37 +110,79 @@ export async function GET(request: NextRequest) {
 
     // Calculate overview
     let totalOmzet = 0;
-    let totalHPP = 0;
     let totalMargin = 0;
-
-    grossMargins.forEach((gm) => {
-      totalOmzet += Number(gm.omzetAmount);
-      totalHPP += Number(gm.hppAmount);
-      totalMargin += Number(gm.marginAmount);
-    });
-
-    const averageMarginPercent =
-      totalOmzet > 0 ? (totalMargin / totalOmzet) * 100 : 0;
+    let totalHPP = 0;
 
     // Aggregate by category
     const categoryMap = new Map<string, CategoryGM>();
 
+    // Aggregate by area
+    const areaCABANG = { omzet: 0, hpp: 0, margin: 0, marginPercent: 0 };
+    const areaLOCAL = { omzet: 0, hpp: 0, margin: 0, marginPercent: 0 };
+
+    // Aggregate by category and area
+    const catAreaMap = new Map<string, CategoryAreaGM>();
+
+    // Process each gross margin record and aggregate
     grossMargins.forEach((gm) => {
+      const omzet = Number(gm.omzetAmount);
+      const margin = Number(gm.marginAmount);
+      const hpp = Number(gm.hppAmount);
+      const marginPct = Number(gm.marginPercent);
+
+      // Add to total
+      totalOmzet += omzet;
+      totalMargin += margin;
+      totalHPP += hpp;
+
+      // Add to category map
       const catName = gm.category.name;
-      const existing = categoryMap.get(catName) || {
+      const existingCat = categoryMap.get(catName) || {
         categoryName: catName,
         omzet: 0,
         hpp: 0,
         margin: 0,
         marginPercent: 0,
       };
+      existingCat.omzet += omzet;
+      existingCat.hpp += hpp;
+      existingCat.margin += margin;
+      categoryMap.set(catName, existingCat);
 
-      existing.omzet += Number(gm.omzetAmount);
-      existing.hpp += Number(gm.hppAmount);
-      existing.margin += Number(gm.marginAmount);
+      // Add to area map
+      if (gm.locationType === "CABANG") {
+        areaCABANG.omzet += omzet;
+        areaCABANG.hpp += hpp;
+        areaCABANG.margin += margin;
+      } else {
+        areaLOCAL.omzet += omzet;
+        areaLOCAL.hpp += hpp;
+        areaLOCAL.margin += margin;
+      }
 
-      categoryMap.set(catName, existing);
+      // Add to category-area map
+      const catAreaKey = `${catName}_${gm.locationType}`;
+      const existing = catAreaMap.get(catAreaKey) || {
+        categoryName: catName,
+        area: gm.locationType,
+        omzet: 0,
+        hpp: 0,
+        margin: 0,
+        marginPercent: 0,
+      };
+      existing.omzet += omzet;
+      existing.hpp += hpp;
+      existing.margin += margin;
+      catAreaMap.set(catAreaKey, existing);
     });
+
+    // Calculate margin percent for category-area combinations
+    catAreaMap.forEach((value, key) => {
+      value.marginPercent = value.omzet > 0 ? (value.margin / value.omzet) * 100 : 0;
+    });
+
+    const averageMarginPercent =
+      totalOmzet > 0 ? (totalMargin / totalOmzet) * 100 : 0;
 
     // Calculate margin percent for each category
     const byCategory = Array.from(categoryMap.values()).map((cat) => ({
@@ -150,52 +193,13 @@ export async function GET(request: NextRequest) {
     // Sort by margin percent (highest to lowest)
     byCategory.sort((a, b) => b.marginPercent - a.marginPercent);
 
-    // Aggregate by area
-    const areaCABANG = { omzet: 0, hpp: 0, margin: 0, marginPercent: 0 };
-    const areaLOCAL = { omzet: 0, hpp: 0, margin: 0, marginPercent: 0 };
-
-    grossMargins.forEach((gm) => {
-      if (gm.locationType === "CABANG") {
-        areaCABANG.omzet += Number(gm.omzetAmount);
-        areaCABANG.hpp += Number(gm.hppAmount);
-        areaCABANG.margin += Number(gm.marginAmount);
-      } else {
-        areaLOCAL.omzet += Number(gm.omzetAmount);
-        areaLOCAL.hpp += Number(gm.hppAmount);
-        areaLOCAL.margin += Number(gm.marginAmount);
-      }
-    });
-
+    // Calculate area margin percentages
     areaCABANG.marginPercent =
       areaCABANG.omzet > 0 ? (areaCABANG.margin / areaCABANG.omzet) * 100 : 0;
     areaLOCAL.marginPercent =
       areaLOCAL.omzet > 0 ? (areaLOCAL.margin / areaLOCAL.omzet) * 100 : 0;
 
-    // Aggregate by category and area
-    const catAreaMap = new Map<string, CategoryAreaGM>();
-
-    grossMargins.forEach((gm) => {
-      const key = `${gm.category.name}_${gm.locationType}`;
-      const existing = catAreaMap.get(key) || {
-        categoryName: gm.category.name,
-        area: gm.locationType,
-        omzet: 0,
-        hpp: 0,
-        margin: 0,
-        marginPercent: 0,
-      };
-
-      existing.omzet += Number(gm.omzetAmount);
-      existing.hpp += Number(gm.hppAmount);
-      existing.margin += Number(gm.marginAmount);
-
-      catAreaMap.set(key, existing);
-    });
-
-    const byCategoryAndArea = Array.from(catAreaMap.values()).map((item) => ({
-      ...item,
-      marginPercent: item.omzet > 0 ? (item.margin / item.omzet) * 100 : 0,
-    }));
+    const byCategoryAndArea = Array.from(catAreaMap.values());
 
     // Alerts
     const lowMarginCategories = byCategory

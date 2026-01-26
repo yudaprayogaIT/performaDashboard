@@ -39,9 +39,9 @@ interface AreaRetur {
 }
 
 /**
- * GET /api/analytics/retur?date=2026-01-15
+ * GET /api/analytics/retur?month=1&year=2025
  *
- * Returns retur analytics for specified date (defaults to today)
+ * Returns retur analytics for specified month/year
  */
 export async function GET(request: NextRequest) {
   try {
@@ -64,18 +64,23 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
-    const dateParam = searchParams.get("date");
+    const monthParam = searchParams.get("month");
+    const yearParam = searchParams.get("year");
 
-    const targetDate = dateParam ? new Date(dateParam) : new Date();
+    // Use current date if not specified
+    const now = new Date();
+    const month = monthParam ? parseInt(monthParam) : now.getMonth() + 1;
+    const year = yearParam ? parseInt(yearParam) : now.getFullYear();
 
-    // Date ranges
-    const todayStart = new Date(targetDate);
+    // Date ranges for the month
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 0, 23, 59, 59);
+
+    // For "today" stats, use today's date
+    const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(targetDate);
+    const todayEnd = new Date(now);
     todayEnd.setHours(23, 59, 59, 999);
-
-    const monthStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-    const monthEnd = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
 
     // Fetch retur data for today
     const returToday = await prisma.retur.findMany({

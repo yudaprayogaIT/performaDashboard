@@ -75,12 +75,15 @@ const TYPE_LABELS: Record<DataType, string> = {
   retur: "Retur",
 };
 
-function formatCurrency(value: number): string {
+function formatCurrency(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "0";
   return value.toLocaleString("id-ID");
 }
 
-function formatDate(dateStr: string): string {
+function formatDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "-";
   const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return "-";
   return date.toLocaleDateString("id-ID", {
     day: "2-digit",
     month: "short",
@@ -88,7 +91,8 @@ function formatDate(dateStr: string): string {
   });
 }
 
-function formatPercent(value: number): string {
+function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "0.00%";
   return value.toFixed(2) + "%";
 }
 
