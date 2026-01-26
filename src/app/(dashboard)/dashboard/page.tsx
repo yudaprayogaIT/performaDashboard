@@ -38,6 +38,18 @@ const defaultSummary: DashboardSummary = {
   cabangPencapaian: 0,
 };
 
+// Helper function to format timestamp
+function formatTimestamp(date: Date | null): string {
+  if (!date) return "Belum ada data";
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export default function DashboardPage() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -54,10 +66,24 @@ export default function DashboardPage() {
   const [returData, setReturData] = useState<{
     today: { totalSellingAmount: number; count: number };
     thisMonth: { totalSellingAmount: number; count: number };
+    lastUpdate: Date | null;
   } | null>(null);
 
   // Sales trend data state (real data from API)
   const [salesTrend, setSalesTrend] = useState<DailySales[]>([]);
+
+  // Last update timestamps
+  const [lastUpdate, setLastUpdate] = useState<{
+    omzet: Date | null;
+    grossMargin: Date | null;
+    retur: Date | null;
+    target: Date | null;
+  }>({
+    omzet: null,
+    grossMargin: null,
+    retur: null,
+    target: null,
+  });
 
   // Fetch dashboard data (targets and sales)
   useEffect(() => {
@@ -65,12 +91,28 @@ export default function DashboardPage() {
       setIsLoading(true);
       try {
         const response = await fetch(
-          `/api/analytics/dashboard?year=${selectedYear}&month=${selectedMonth}`
+          `/api/analytics/dashboard?year=${selectedYear}&month=${selectedMonth}`,
         );
         const result = await response.json();
         if (result.success) {
           setCategories(result.data.categories);
           setSummary(result.data.summary);
+          if (result.lastUpdate) {
+            setLastUpdate({
+              omzet: result.lastUpdate.omzet
+                ? new Date(result.lastUpdate.omzet)
+                : null,
+              grossMargin: result.lastUpdate.grossMargin
+                ? new Date(result.lastUpdate.grossMargin)
+                : null,
+              retur: result.lastUpdate.retur
+                ? new Date(result.lastUpdate.retur)
+                : null,
+              target: result.lastUpdate.target
+                ? new Date(result.lastUpdate.target)
+                : null,
+            });
+          }
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -87,11 +129,16 @@ export default function DashboardPage() {
     const fetchReturData = async () => {
       try {
         const response = await fetch(
-          `/api/analytics/retur?month=${selectedMonth}&year=${selectedYear}`
+          `/api/analytics/retur?month=${selectedMonth}&year=${selectedYear}`,
         );
         const result = await response.json();
         if (result.success) {
-          setReturData(result.data);
+          setReturData({
+            ...result.data,
+            lastUpdate: result.data.lastUpdate
+              ? new Date(result.data.lastUpdate)
+              : null,
+          });
         }
       } catch (error) {
         console.error("Error fetching retur data:", error);
@@ -108,7 +155,7 @@ export default function DashboardPage() {
         // Get enough data for all period types (730 days = 2 years)
         const daysNeeded = getDataRangeForPeriod(selectedPeriod);
         const response = await fetch(
-          `/api/analytics/sales-trend?days=${Math.max(daysNeeded, 730)}`
+          `/api/analytics/sales-trend?days=${Math.max(daysNeeded, 730)}`,
         );
         const result = await response.json();
         if (result.success) {
@@ -138,70 +185,73 @@ export default function DashboardPage() {
   // Daily comparison (today vs yesterday) - using real data
   const comparisonDaily = useMemo(
     () => calculateComparison(salesTrend, "total", 1),
-    [salesTrend]
+    [salesTrend],
   );
   const grossMarginDaily = useMemo(
     () => calculateComparison(salesTrend, "totalGrossMargin", 1),
-    [salesTrend]
+    [salesTrend],
   );
 
   // Weekly comparison (current week Mon-Sun vs previous week Mon-Sun)
   const comparisonWeekly = useMemo(
     () => calculateCalendarComparison(salesTrend, "total", "weekly"),
-    [salesTrend]
+    [salesTrend],
   );
   const grossMarginWeekly = useMemo(
     () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "weekly"),
-    [salesTrend]
+    [salesTrend],
   );
 
   // Monthly comparison (current month 1st-end vs previous month 1st-end)
   const comparisonMonthly = useMemo(
     () => calculateCalendarComparison(salesTrend, "total", "monthly"),
-    [salesTrend]
+    [salesTrend],
   );
   const grossMarginMonthly = useMemo(
-    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "monthly"),
-    [salesTrend]
+    () =>
+      calculateCalendarComparison(salesTrend, "totalGrossMargin", "monthly"),
+    [salesTrend],
   );
 
   // Quarterly comparison (current quarter vs previous quarter)
   const comparisonQuarterly = useMemo(
     () => calculateCalendarComparison(salesTrend, "total", "quarterly"),
-    [salesTrend]
+    [salesTrend],
   );
   const grossMarginQuarterly = useMemo(
-    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "quarterly"),
-    [salesTrend]
+    () =>
+      calculateCalendarComparison(salesTrend, "totalGrossMargin", "quarterly"),
+    [salesTrend],
   );
 
   // Semester comparison (current semester vs previous semester)
   const comparisonSemester = useMemo(
     () => calculateCalendarComparison(salesTrend, "total", "semester"),
-    [salesTrend]
+    [salesTrend],
   );
   const grossMarginSemester = useMemo(
-    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "semester"),
-    [salesTrend]
+    () =>
+      calculateCalendarComparison(salesTrend, "totalGrossMargin", "semester"),
+    [salesTrend],
   );
 
   // Yearly comparison (current year Jan-Dec vs previous year Jan-Dec)
   const comparisonYearly = useMemo(
     () => calculateCalendarComparison(salesTrend, "total", "yearly"),
-    [salesTrend]
+    [salesTrend],
   );
   const grossMarginYearly = useMemo(
     () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "yearly"),
-    [salesTrend]
+    [salesTrend],
   );
 
   const comparisonLocalVsYesterday = useMemo(
     () => calculateComparison(salesTrend, "local", 1),
-    [salesTrend]
+    [salesTrend],
   );
   const comparisonCabangVsYesterday = useMemo(
     () => calculateComparison(salesTrend, "cabang", 1),
-    [salesTrend]
+    [salesTrend],
   );
 
   // Handle entering presentation mode
@@ -237,6 +287,7 @@ export default function DashboardPage() {
             percentage={summary.totalPencapaian}
             icon="payments"
             variant="primary"
+            lastUpdate={formatTimestamp(lastUpdate.omzet)}
           />
           <StatsCard
             title="Sales Local (Bogor)"
@@ -245,6 +296,7 @@ export default function DashboardPage() {
             percentage={summary.localPencapaian}
             icon="store"
             variant="success"
+            lastUpdate={formatTimestamp(lastUpdate.omzet)}
           />
           <StatsCard
             title="Sales Cabang"
@@ -253,6 +305,7 @@ export default function DashboardPage() {
             percentage={summary.cabangPencapaian}
             icon="storefront"
             variant="default"
+            lastUpdate={formatTimestamp(lastUpdate.omzet)}
           />
         </div>
 
@@ -298,6 +351,8 @@ export default function DashboardPage() {
             data={comparisonDaily}
             grossMarginData={grossMarginDaily}
             icon="calendar_today"
+            lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
+            lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
           />
           <ComparisonCard
             title="Total Omzet Minggu Ini"
@@ -305,6 +360,8 @@ export default function DashboardPage() {
             data={comparisonWeekly}
             grossMarginData={grossMarginWeekly}
             icon="date_range"
+            lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
+            lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
           />
           <ComparisonCard
             title="Total Omzet Bulan Ini"
@@ -312,6 +369,8 @@ export default function DashboardPage() {
             data={comparisonMonthly}
             grossMarginData={grossMarginMonthly}
             icon="calendar_month"
+            lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
+            lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
           />
         </div>
 
@@ -358,6 +417,14 @@ export default function DashboardPage() {
                 {returData ? returData.today.count : 0} transaksi retur
               </span>
             </div>
+            {returData?.lastUpdate && (
+              <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
+                {/* <span className="material-symbols-outlined text-xs">
+                  schedule
+                </span> */}
+                Update: {formatTimestamp(returData.lastUpdate)}
+              </p>
+            )}
           </div>
 
           {/* Retur Bulan Ini */}
@@ -393,6 +460,14 @@ export default function DashboardPage() {
                 {returData ? returData.thisMonth.count : 0} transaksi retur
               </span>
             </div>
+            {returData?.lastUpdate && (
+              <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
+                {/* <span className="material-symbols-outlined text-xs">
+                  schedule
+                </span> */}
+                Update: {formatTimestamp(returData.lastUpdate)}
+              </p>
+            )}
           </div>
         </div>
       </div>,
@@ -479,11 +554,7 @@ export default function DashboardPage() {
             LOCAL Achievement (Bogor & Sekitar)
           </h1>
         </div>
-        <CategoryAchievementPie
-          categories={categories}
-          type="local"
-          title=""
-        />
+        <CategoryAchievementPie categories={categories} type="local" title="" />
       </div>,
 
       // Section 5: CABANG Achievement (All Categories)
@@ -562,6 +633,7 @@ export default function DashboardPage() {
             percentage={summary.totalPencapaian}
             icon="payments"
             variant="primary"
+            lastUpdate={formatTimestamp(lastUpdate.omzet)}
           />
           <StatsCard
             title="Sales Local (Bogor)"
@@ -570,6 +642,7 @@ export default function DashboardPage() {
             percentage={summary.localPencapaian}
             icon="store"
             variant="success"
+            lastUpdate={formatTimestamp(lastUpdate.omzet)}
           />
           <StatsCard
             title="Sales Cabang"
@@ -578,6 +651,7 @@ export default function DashboardPage() {
             percentage={summary.cabangPencapaian}
             icon="storefront"
             variant="default"
+            lastUpdate={formatTimestamp(lastUpdate.omzet)}
           />
         </div>
 
@@ -596,6 +670,8 @@ export default function DashboardPage() {
               data={comparisonDaily}
               grossMarginData={grossMarginDaily}
               icon="calendar_today"
+              lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
+              lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
             />
             <ComparisonCard
               title="Total Omzet Minggu Ini"
@@ -603,6 +679,8 @@ export default function DashboardPage() {
               data={comparisonWeekly}
               grossMarginData={grossMarginWeekly}
               icon="date_range"
+              lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
+              lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
             />
             <ComparisonCard
               title="Total Omzet Bulan Ini"
@@ -610,6 +688,8 @@ export default function DashboardPage() {
               data={comparisonMonthly}
               grossMarginData={grossMarginMonthly}
               icon="calendar_month"
+              lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
+              lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
             />
             {/* <ComparisonCard
               title="Total Omzet Triwulan Ini"
@@ -677,6 +757,14 @@ export default function DashboardPage() {
                   {returData ? returData.today.count : 0} transaksi retur
                 </span>
               </div>
+              {returData?.lastUpdate && (
+                <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
+                  {/* <span className="material-symbols-outlined text-xs">
+                    schedule
+                  </span> */}
+                  Update: {formatTimestamp(returData.lastUpdate)}
+                </p>
+              )}
             </div>
 
             {/* Retur Bulan Ini */}
@@ -712,6 +800,14 @@ export default function DashboardPage() {
                   {returData ? returData.thisMonth.count : 0} transaksi retur
                 </span>
               </div>
+              {returData?.lastUpdate && (
+                <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
+                  {/* <span className="material-symbols-outlined text-xs">
+                    schedule
+                  </span> */}
+                  Update: {formatTimestamp(returData.lastUpdate)}
+                </p>
+              )}
             </div>
           </div>
         </div>

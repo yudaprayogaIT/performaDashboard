@@ -183,6 +183,30 @@ export async function GET(request: NextRequest) {
       cabangPencapaian: cabangTarget > 0 ? Math.round((cabangOmzet / cabangTarget) * 10000) / 100 : 0,
     };
 
+    // Get last upload timestamps for each data type
+    const lastOmzetUpload = await prisma.salesUpload.findFirst({
+      where: { uploadType: "OMZET", status: "SUCCESS" },
+      orderBy: { processedAt: "desc" },
+      select: { processedAt: true },
+    });
+
+    const lastGrossMarginUpload = await prisma.salesUpload.findFirst({
+      where: { uploadType: "GROSS_MARGIN", status: "SUCCESS" },
+      orderBy: { processedAt: "desc" },
+      select: { processedAt: true },
+    });
+
+    const lastReturUpload = await prisma.salesUpload.findFirst({
+      where: { uploadType: "RETUR", status: "SUCCESS" },
+      orderBy: { processedAt: "desc" },
+      select: { processedAt: true },
+    });
+
+    const lastTargetUpdate = await prisma.target.findFirst({
+      orderBy: { updatedAt: "desc" },
+      select: { updatedAt: true },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -193,6 +217,12 @@ export async function GET(request: NextRequest) {
         year,
         month: month || "all",
         categoryCount: categories.length,
+      },
+      lastUpdate: {
+        omzet: lastOmzetUpload?.processedAt || null,
+        grossMargin: lastGrossMarginUpload?.processedAt || null,
+        retur: lastReturUpload?.processedAt || null,
+        target: lastTargetUpdate?.updatedAt || null,
       },
     });
   } catch (error) {

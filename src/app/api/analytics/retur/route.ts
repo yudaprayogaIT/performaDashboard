@@ -22,6 +22,7 @@ interface ReturAnalytics {
       CABANG: AreaRetur;
       LOKAL: AreaRetur;
     };
+    lastUpdate: Date | null;
   };
 }
 
@@ -174,6 +175,13 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Get last upload timestamp
+    const lastUpload = await prisma.salesUpload.findFirst({
+      where: { uploadType: "RETUR", status: "SUCCESS" },
+      orderBy: { processedAt: "desc" },
+      select: { processedAt: true },
+    });
+
     return NextResponse.json<ReturAnalytics>({
       success: true,
       data: {
@@ -192,6 +200,7 @@ export async function GET(request: NextRequest) {
           CABANG: areaCABANG,
           LOKAL: areaLOKAL,
         },
+        lastUpdate: lastUpload?.processedAt || null,
       },
     });
   } catch (error) {
