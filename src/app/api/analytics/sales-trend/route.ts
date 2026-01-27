@@ -21,9 +21,13 @@ interface SalesTrendResponse {
 }
 
 /**
- * GET /api/analytics/sales-trend?days=30
+ * GET /api/analytics/sales-trend
+ * 
+ * Supports two modes:
+ * 1. Calendar-based: ?period=daily&month=1&year=2026
+ * 2. Days-based: ?days=90 (for comparison cards - always real-time)
  *
- * Returns daily sales trend data from database
+ * Returns sales trend data from database
  */
 export async function GET(request: NextRequest) {
   try {
@@ -46,16 +50,84 @@ export async function GET(request: NextRequest) {
 
     // Get query parameters
     const { searchParams } = new URL(request.url);
+    const period = searchParams.get("period") || "daily";
+    const monthParam = searchParams.get("month");
+    const yearParam = searchParams.get("year");
     const daysParam = searchParams.get("days");
-    const days = daysParam ? parseInt(daysParam) : 30;
 
-    // Calculate date range
-    const endDate = new Date();
-    endDate.setHours(23, 59, 59, 999);
+    let startDate: Date;
+    let endDate: Date;
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days + 1);
-    startDate.setHours(0, 0, 0, 0);
+    // MODE 1: Days-based (for comparison cards - always real-time)
+    if (daysParam) {
+      const days = parseInt(daysParam);
+      endDate = new Date();
+      endDate.setHours(23, 59, 59, 999);
+      
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - days + 1);
+      startDate.setHours(0, 0, 0, 0);
+    } 
+    // MODE 2: Calendar-based (for trend chart - filtered by selected month/year)
+    else {
+      const month = monthParam ? parseInt(monthParam) : new Date().getMonth() + 1;
+      const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
+
+      switch (period) {
+        case "daily":
+          // Show all days in selected month (1 Jan - 31 Jan)
+          startDate = new Date(year, month - 1, 1);
+          endDate = new Date(year, month, 0, 23, 59, 59, 999);
+          break;
+          
+        case "weekly":
+          // Show all weeks in selected month (plus some overflow to complete weeks)
+          startDate = new Date(year, month - 1, 1);
+          // Go back to Monday of first week
+          const firstDayOfWeek = startDate.getDay();
+          startDate.setDate(startDate.getDate() - (firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1));
+          
+          endDate = new Date(year, month, 0);
+          // Go forward to Sunday of last week
+          const lastDayOfWeek = endDate.getDay();
+          if (lastDayOfWeek !== 0) {
+            endDate.setDate(endDate.getDate() + (7 - lastDayOfWeek));
+          }
+          endDate.setHours(23, 59, 59, 999);
+          break;
+          
+        case "monthly":
+          // Show 12 months in selected year (Jan - Dec)
+          startDate = new Date(year, 0, 1);
+          endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+          break;
+          
+        case "quarterly":
+          // Show 4 quarters in selected year (Q1 - Q4)
+          startDate = new Date(year, 0, 1);
+          endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+          break;
+          
+        case "semester":
+          // Show 2 semesters in selected year (S1 - S2)
+          startDate = new Date(year, 0, 1);
+          endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+          break;
+          
+        case "yearly":
+          // Show 5 years (2 years before selected year, selected year, 2 years after)
+          startDate = new Date(year - 2, 0, 1);
+          endDate = new Date(year + 2, 11, 31, 23, 59, 59, 999);
+          break;
+          
+        default:
+          // Default: selected month
+          startDate = new Date(year, month - 1, 1);
+          endDate = new Date(year, month, 0, 23, 59, 59, 999);
+      }
+
+      startDate.setHours(0, 0, 0, 0);
+    }
 
     // Get all locations with their types
     const locations = await prisma.location.findMany({

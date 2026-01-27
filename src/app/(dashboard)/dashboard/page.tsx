@@ -21,7 +21,6 @@ import {
 } from "@/lib/mock-data-daily";
 import {
   aggregateDataByPeriod,
-  getDataRangeForPeriod,
   getChartTitle,
 } from "@/lib/data-aggregator";
 
@@ -70,7 +69,8 @@ export default function DashboardPage() {
   } | null>(null);
 
   // Sales trend data state (real data from API)
-  const [salesTrend, setSalesTrend] = useState<DailySales[]>([]);
+  const [salesTrend, setSalesTrend] = useState<DailySales[]>([]); // Untuk chart (filtered by month)
+  const [salesTrendComparison, setSalesTrendComparison] = useState<DailySales[]>([]); // ✨ Untuk comparison cards (always real-time)
 
   // Last update timestamps
   const [lastUpdate, setLastUpdate] = useState<{
@@ -148,14 +148,37 @@ export default function DashboardPage() {
     fetchReturData();
   }, [selectedMonth, selectedYear]);
 
-  // Fetch sales trend data
+  // ✨ NEW: Fetch sales trend data for comparison cards (always real-time, not filtered by month)
+  useEffect(() => {
+    const fetchSalesTrendComparison = async () => {
+      try {
+        // Always fetch last 90 days for comparisons (to cover weekly/monthly comparisons)
+        const response = await fetch(
+          `/api/analytics/sales-trend?days=90`
+        );
+        const result = await response.json();
+        if (result.success) {
+          setSalesTrendComparison(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching sales trend for comparison:", error);
+      }
+    };
+
+    fetchSalesTrendComparison();
+    
+    // Optional: Refresh every 5 minutes to keep comparison data fresh
+    const interval = setInterval(fetchSalesTrendComparison, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []); // No dependencies - always fetch last 90 days
+
+  // Fetch sales trend data for chart (filtered by selected month/year)
   useEffect(() => {
     const fetchSalesTrend = async () => {
       try {
-        // Get enough data for all period types (730 days = 2 years)
-        const daysNeeded = getDataRangeForPeriod(selectedPeriod);
+        // Fetch data based on selected period, month, and year
         const response = await fetch(
-          `/api/analytics/sales-trend?days=${Math.max(daysNeeded, 730)}`,
+          `/api/analytics/sales-trend?period=${selectedPeriod}&month=${selectedMonth}&year=${selectedYear}`
         );
         const result = await response.json();
         if (result.success) {
@@ -167,7 +190,7 @@ export default function DashboardPage() {
     };
 
     fetchSalesTrend();
-  }, [selectedPeriod]);
+  }, [selectedPeriod, selectedMonth, selectedYear]); 
 
   // Auto-exit presentation mode when fullscreen is exited (e.g., via ESC key)
   useEffect(() => {
@@ -176,82 +199,83 @@ export default function DashboardPage() {
     }
   }, [isFullscreen, isPresentationMode]);
 
-  // Aggregate data by selected period using real data
+  // Aggregate data by selected period using real data (for chart)
   const aggregatedData = useMemo(() => {
     if (salesTrend.length === 0) return [];
     return aggregateDataByPeriod(salesTrend, selectedPeriod);
   }, [salesTrend, selectedPeriod]);
 
-  // Daily comparison (today vs yesterday) - using real data
+  // ✨ UPDATED: All comparisons now use salesTrendComparison (real-time data)
+  // Daily comparison (yesterday vs day before yesterday) - using COMPARISON data
   const comparisonDaily = useMemo(
-    () => calculateComparison(salesTrend, "total", 1),
-    [salesTrend],
+    () => calculateComparison(salesTrendComparison, "total", 1),
+    [salesTrendComparison],
   );
   const grossMarginDaily = useMemo(
-    () => calculateComparison(salesTrend, "totalGrossMargin", 1),
-    [salesTrend],
+    () => calculateComparison(salesTrendComparison, "totalGrossMargin", 1),
+    [salesTrendComparison],
   );
 
   // Weekly comparison (current week Mon-Sun vs previous week Mon-Sun)
   const comparisonWeekly = useMemo(
-    () => calculateCalendarComparison(salesTrend, "total", "weekly"),
-    [salesTrend],
+    () => calculateCalendarComparison(salesTrendComparison, "total", "weekly"),
+    [salesTrendComparison],
   );
   const grossMarginWeekly = useMemo(
-    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "weekly"),
-    [salesTrend],
+    () => calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "weekly"),
+    [salesTrendComparison],
   );
 
   // Monthly comparison (current month 1st-end vs previous month 1st-end)
   const comparisonMonthly = useMemo(
-    () => calculateCalendarComparison(salesTrend, "total", "monthly"),
-    [salesTrend],
+    () => calculateCalendarComparison(salesTrendComparison, "total", "monthly"),
+    [salesTrendComparison],
   );
   const grossMarginMonthly = useMemo(
     () =>
-      calculateCalendarComparison(salesTrend, "totalGrossMargin", "monthly"),
-    [salesTrend],
+      calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "monthly"),
+    [salesTrendComparison],
   );
 
   // Quarterly comparison (current quarter vs previous quarter)
   const comparisonQuarterly = useMemo(
-    () => calculateCalendarComparison(salesTrend, "total", "quarterly"),
-    [salesTrend],
+    () => calculateCalendarComparison(salesTrendComparison, "total", "quarterly"),
+    [salesTrendComparison],
   );
   const grossMarginQuarterly = useMemo(
     () =>
-      calculateCalendarComparison(salesTrend, "totalGrossMargin", "quarterly"),
-    [salesTrend],
+      calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "quarterly"),
+    [salesTrendComparison],
   );
 
   // Semester comparison (current semester vs previous semester)
   const comparisonSemester = useMemo(
-    () => calculateCalendarComparison(salesTrend, "total", "semester"),
-    [salesTrend],
+    () => calculateCalendarComparison(salesTrendComparison, "total", "semester"),
+    [salesTrendComparison],
   );
   const grossMarginSemester = useMemo(
     () =>
-      calculateCalendarComparison(salesTrend, "totalGrossMargin", "semester"),
-    [salesTrend],
+      calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "semester"),
+    [salesTrendComparison],
   );
 
   // Yearly comparison (current year Jan-Dec vs previous year Jan-Dec)
   const comparisonYearly = useMemo(
-    () => calculateCalendarComparison(salesTrend, "total", "yearly"),
-    [salesTrend],
+    () => calculateCalendarComparison(salesTrendComparison, "total", "yearly"),
+    [salesTrendComparison],
   );
   const grossMarginYearly = useMemo(
-    () => calculateCalendarComparison(salesTrend, "totalGrossMargin", "yearly"),
-    [salesTrend],
+    () => calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "yearly"),
+    [salesTrendComparison],
   );
 
   const comparisonLocalVsYesterday = useMemo(
-    () => calculateComparison(salesTrend, "local", 1),
-    [salesTrend],
+    () => calculateComparison(salesTrendComparison, "local", 1),
+    [salesTrendComparison],
   );
   const comparisonCabangVsYesterday = useMemo(
-    () => calculateComparison(salesTrend, "cabang", 1),
-    [salesTrend],
+    () => calculateComparison(salesTrendComparison, "cabang", 1),
+    [salesTrendComparison],
   );
 
   // Handle entering presentation mode
@@ -309,33 +333,6 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-white/50 uppercase tracking-wider mb-2">
-              Total Target
-            </p>
-            <p className="text-2xl font-bold text-white">Rp 141T</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-white/50 uppercase tracking-wider mb-2">
-              Total Omzet
-            </p>
-            <p className="text-2xl font-bold text-green-400">Rp 122.8T</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-white/50 uppercase tracking-wider mb-2">
-              Achievement
-            </p>
-            <p className="text-2xl font-bold text-primary">87.13%</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-            <p className="text-sm text-white/50 uppercase tracking-wider mb-2">
-              Categories
-            </p>
-            <p className="text-2xl font-bold text-white">17</p>
-          </div>
-        </div> */}
-
         <div>
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
             <span className="material-symbols-outlined text-primary text-5xl">
@@ -346,31 +343,31 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <ComparisonCard
-            title="Total Omzet Hari Ini"
-            comparisonLabel="vs Kemarin"
+            title="Total Omzet Kemarin"
+            comparisonLabel="vs 2 Hari Lalu"
             data={comparisonDaily}
             grossMarginData={grossMarginDaily}
             icon="calendar_today"
-            lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
-            lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
+            lastUpdateOmzet={formatTimestamp(lastUpdate.omzet)}
+            lastUpdateGrossMargin={formatTimestamp(lastUpdate.grossMargin)}
           />
           <ComparisonCard
-            title="Total Omzet Minggu Ini"
+            title="Total Omzet Minggu Ini (s.d Kemarin)"
             comparisonLabel="vs Minggu Lalu"
             data={comparisonWeekly}
             grossMarginData={grossMarginWeekly}
             icon="date_range"
-            lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
-            lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
+            lastUpdateOmzet={formatTimestamp(lastUpdate.omzet)}
+            lastUpdateGrossMargin={formatTimestamp(lastUpdate.grossMargin)}
           />
           <ComparisonCard
-            title="Total Omzet Bulan Ini"
+            title="Total Omzet Bulan Ini (s.d Kemarin)"
             comparisonLabel="vs Bulan Lalu"
             data={comparisonMonthly}
             grossMarginData={grossMarginMonthly}
             icon="calendar_month"
-            lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
-            lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
+            lastUpdateOmzet={formatTimestamp(lastUpdate.omzet)}
+            lastUpdateGrossMargin={formatTimestamp(lastUpdate.grossMargin)}
           />
         </div>
 
@@ -419,9 +416,6 @@ export default function DashboardPage() {
             </div>
             {returData?.lastUpdate && (
               <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
-                {/* <span className="material-symbols-outlined text-xs">
-                  schedule
-                </span> */}
                 Update: {formatTimestamp(returData.lastUpdate)}
               </p>
             )}
@@ -462,71 +456,12 @@ export default function DashboardPage() {
             </div>
             {returData?.lastUpdate && (
               <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
-                {/* <span className="material-symbols-outlined text-xs">
-                  schedule
-                </span> */}
                 Update: {formatTimestamp(returData.lastUpdate)}
               </p>
             )}
           </div>
         </div>
       </div>,
-
-      // Section 2: Multi-Period Growth Comparison
-      // <div key="comparison" className="space-y-6">
-      //   <div>
-      //     <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-      //       <span className="material-symbols-outlined text-primary text-5xl">
-      //         timeline
-      //       </span>
-      //       Pertumbuhan Omzet & Gross Margin
-      //     </h1>
-      //   </div>
-      //   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      //     <ComparisonCard
-      //       title="Total Omzet Hari Ini"
-      //       comparisonLabel="vs Kemarin"
-      //       data={comparisonDaily}
-      //       grossMarginData={grossMarginDaily}
-      //       icon="calendar_today"
-      //     />
-      //     <ComparisonCard
-      //       title="Total Omzet Minggu Ini"
-      //       comparisonLabel="vs Minggu Lalu"
-      //       data={comparisonWeekly}
-      //       grossMarginData={grossMarginWeekly}
-      //       icon="date_range"
-      //     />
-      //     <ComparisonCard
-      //       title="Total Omzet Bulan Ini"
-      //       comparisonLabel="vs Bulan Lalu"
-      //       data={comparisonMonthly}
-      //       grossMarginData={grossMarginMonthly}
-      //       icon="calendar_month"
-      //     />
-      //     <ComparisonCard
-      //       title="Total Omzet Triwulan Ini"
-      //       comparisonLabel="vs Triwulan Lalu"
-      //       data={comparisonQuarterly}
-      //       grossMarginData={grossMarginQuarterly}
-      //       icon="event_note"
-      //     />
-      //     <ComparisonCard
-      //       title="Total Omzet Semester Ini"
-      //       comparisonLabel="vs Semester Lalu"
-      //       data={comparisonSemester}
-      //       grossMarginData={grossMarginSemester}
-      //       icon="calendar_view_month"
-      //     />
-      //     <ComparisonCard
-      //       title="Total Omzet Tahun Ini"
-      //       comparisonLabel="vs Tahun Lalu"
-      //       data={comparisonYearly}
-      //       grossMarginData={grossMarginYearly}
-      //       icon="date_range"
-      //     />
-      //   </div>
-      // </div>,
 
       // Section 3: Trend Chart
       <div key="trends" className="space-y-6">
@@ -535,7 +470,7 @@ export default function DashboardPage() {
             <span className="material-symbols-outlined text-primary text-5xl">
               insights
             </span>
-            Trend Penjualan - {getChartTitle(selectedPeriod)}
+            Trend Penjualan - {getChartTitle(selectedPeriod, selectedMonth, selectedYear)}
           </h1>
         </div>
         <TrendChart
@@ -591,6 +526,7 @@ export default function DashboardPage() {
       returData,
       categories,
       summary,
+      lastUpdate,
     ],
   );
 
@@ -665,53 +601,32 @@ export default function DashboardPage() {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ComparisonCard
-              title="Total Omzet Hari Ini"
-              comparisonLabel="vs Kemarin"
+              title="Total Omzet Kemarin"
+              comparisonLabel="vs 2 Hari Lalu"
               data={comparisonDaily}
               grossMarginData={grossMarginDaily}
               icon="calendar_today"
-              lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
-              lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
+              lastUpdateOmzet={formatTimestamp(lastUpdate.omzet)}
+              lastUpdateGrossMargin={formatTimestamp(lastUpdate.grossMargin)}
             />
             <ComparisonCard
-              title="Total Omzet Minggu Ini"
+              title="Total Omzet Minggu Ini (s.d Kemarin)"
               comparisonLabel="vs Minggu Lalu"
               data={comparisonWeekly}
               grossMarginData={grossMarginWeekly}
               icon="date_range"
-              lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
-              lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
+              lastUpdateOmzet={formatTimestamp(lastUpdate.omzet)}
+              lastUpdateGrossMargin={formatTimestamp(lastUpdate.grossMargin)}
             />
             <ComparisonCard
-              title="Total Omzet Bulan Ini"
+              title="Total Omzet Bulan Ini (s.d Kemarin)"
               comparisonLabel="vs Bulan Lalu"
               data={comparisonMonthly}
               grossMarginData={grossMarginMonthly}
               icon="calendar_month"
-              lastUpdateOmzet={`${formatTimestamp(lastUpdate.omzet)}`}
-              lastUpdateGrossMargin={`${formatTimestamp(lastUpdate.grossMargin)}`}
+              lastUpdateOmzet={formatTimestamp(lastUpdate.omzet)}
+              lastUpdateGrossMargin={formatTimestamp(lastUpdate.grossMargin)}
             />
-            {/* <ComparisonCard
-              title="Total Omzet Triwulan Ini"
-              comparisonLabel="vs Triwulan Lalu"
-              data={comparisonQuarterly}
-              grossMarginData={grossMarginQuarterly}
-              icon="event_note"
-            />
-            <ComparisonCard
-              title="Total Omzet Semester Ini"
-              comparisonLabel="vs Semester Lalu"
-              data={comparisonSemester}
-              grossMarginData={grossMarginSemester}
-              icon="calendar_view_month"
-            />
-            <ComparisonCard
-              title="Total Omzet Tahun Ini"
-              comparisonLabel="vs Tahun Lalu"
-              data={comparisonYearly}
-              grossMarginData={grossMarginYearly}
-              icon="date_range"
-            /> */}
           </div>
         </div>
 
@@ -759,9 +674,6 @@ export default function DashboardPage() {
               </div>
               {returData?.lastUpdate && (
                 <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
-                  {/* <span className="material-symbols-outlined text-xs">
-                    schedule
-                  </span> */}
                   Update: {formatTimestamp(returData.lastUpdate)}
                 </p>
               )}
@@ -802,34 +714,12 @@ export default function DashboardPage() {
               </div>
               {returData?.lastUpdate && (
                 <p className="text-xs text-white/30 mt-2 flex items-center gap-1">
-                  {/* <span className="material-symbols-outlined text-xs">
-                    schedule
-                  </span> */}
                   Update: {formatTimestamp(returData.lastUpdate)}
                 </p>
               )}
             </div>
           </div>
         </div>
-
-        {/* Comparison: Local vs Cabang Today */}
-        {/* <div>
-                <h2 className="text-xl font-bold text-white mb-4">Pertumbuhan Local vs Cabang</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <ComparisonCard
-                        title="Omzet Local Hari Ini"
-                        comparisonLabel="vs Kemarin"
-                        data={comparisonLocalVsYesterday}
-                        icon="store"
-                    />
-                    <ComparisonCard
-                        title="Omzet Cabang Hari Ini"
-                        comparisonLabel="vs Kemarin"
-                        data={comparisonCabangVsYesterday}
-                        icon="storefront"
-                    />
-                </div>
-            </div> */}
 
         {/* Trend Charts */}
         <div className="space-y-6">
@@ -849,43 +739,12 @@ export default function DashboardPage() {
           {/* Overall Trend */}
           <TrendChart
             data={aggregatedData}
-            title={getChartTitle(selectedPeriod)}
+            title={getChartTitle(selectedPeriod, selectedMonth, selectedYear)}
             showLocal={true}
             showCabang={true}
             showTotal={true}
           />
-
-          {/* Category Trends */}
-          {/* <CategoryTrendChart
-          data={mockDailyCategorySales}
-          title="Trend Top 5 Categories (7 Hari Terakhir)"
-          showLocal={true}
-          showCabang={true}
-          daysToShow={7}
-        /> */}
         </div>
-
-        {/* Category Performance Table */}
-        {/* <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Sales by Category</h2>
-          <div className="flex items-center gap-4 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-green-500"></div>
-              <span className="text-white/60">Local</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-blue-500"></div>
-              <span className="text-white/60">Cabang</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-purple-500"></div>
-              <span className="text-white/60">Total</span>
-            </div>
-          </div>
-        </div>
-        <CategoryTable categories={categories} />
-      </div> */}
 
         {/* Category Achievement by Location */}
         <div className="space-y-6">
@@ -910,34 +769,6 @@ export default function DashboardPage() {
             title="CABANG Achievement (Luar Bogor)"
           />
         </div>
-
-        {/* Quick Stats Summary */}
-        {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
-              Total Target
-            </p>
-            <p className="text-lg font-bold text-white">Rp 141T</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
-              Total Omzet
-            </p>
-            <p className="text-lg font-bold text-green-400">Rp 122.8T</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
-              Achievement
-            </p>
-            <p className="text-lg font-bold text-primary">87.13%</p>
-          </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">
-              Categories
-            </p>
-            <p className="text-lg font-bold text-white">17</p>
-          </div>
-        </div> */}
       </div>
 
       {/* Fullscreen Carousel Presentation Mode */}

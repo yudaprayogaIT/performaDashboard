@@ -202,7 +202,7 @@ export async function parseOmzetExcel(
 
         // Parse amount
         const amount = parseNumber(row.amount || row.Amount);
-        if (amount === null || amount <= 0) {
+        if (amount === null || amount < 0) {
           errors.push(`Baris ${rowNumber}: Amount harus berisi angka positif`);
           continue;
         }

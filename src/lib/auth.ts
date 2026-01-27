@@ -138,7 +138,7 @@ export const AUTH_COOKIE_NAME = "auth_token";
  */
 export const COOKIE_OPTIONS = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
+  secure:false,
   sameSite: "lax" as const,
   maxAge: 1 * 24 * 60 * 60, // 1 hari dalam detik
   path: "/",

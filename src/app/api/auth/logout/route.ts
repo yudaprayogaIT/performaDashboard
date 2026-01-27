@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Ini akan membuat browser langsung hapus cookie
     response.cookies.set(AUTH_COOKIE_NAME, "", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: "lax",
       maxAge: 0, // Expire immediately
       path: "/",

@@ -162,41 +162,29 @@ export function aggregateDataByPeriod(
         .sort((a, b) => a.periodStart.getTime() - b.periodStart.getTime());
 }
 
-// Get appropriate data range based on period
-export function getDataRangeForPeriod(periodType: PeriodType): number {
+// Get chart title based on period and selected month/year
+export function getChartTitle(periodType: PeriodType, month?: number, year?: number): string {
+    const monthNames = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    
+    const monthName = month ? monthNames[month - 1] : "";
+    const currentYear = year || new Date().getFullYear();  // ← FIX: Berikan default value
+    
     switch (periodType) {
         case "daily":
-            return 30; // Last 30 days
+            return `Trend Omzet Harian (${monthName} ${currentYear})`;
         case "weekly":
-            return 90; // Last ~13 weeks
+            return `Trend Omzet Mingguan (${monthName} ${currentYear})`;
         case "monthly":
-            return 365; // Last 12 months
+            return `Trend Omzet Bulanan (${currentYear})`;
         case "quarterly":
-            return 730; // Last 2 years (8 quarters)
+            return `Trend Omzet Triwulan (${currentYear})`;
         case "semester":
-            return 730; // Last 2 years (4 semesters)
+            return `Trend Omzet Semester (${currentYear})`;
         case "yearly":
-            return 1825; // Last 5 years
-        default:
-            return 30;
-    }
-}
-
-// Get chart title based on period
-export function getChartTitle(periodType: PeriodType): string {
-    switch (periodType) {
-        case "daily":
-            return "Trend Omzet Harian (30 Hari Terakhir)";
-        case "weekly":
-            return "Trend Omzet Mingguan (13 Minggu Terakhir)";
-        case "monthly":
-            return "Trend Omzet Bulanan (12 Bulan Terakhir)";
-        case "quarterly":
-            return "Trend Omzet Triwulan (8 Triwulan Terakhir)";
-        case "semester":
-            return "Trend Omzet Semester (4 Semester Terakhir)";
-        case "yearly":
-            return "Trend Omzet Tahunan (5 Tahun Terakhir)";
+            return `Trend Omzet Tahunan (${currentYear - 2} - ${currentYear + 2})`;
         default:
             return "Trend Omzet";
     }
