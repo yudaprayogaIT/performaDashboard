@@ -6,6 +6,17 @@ import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { parseOmzetExcel } from "@/lib/excel-parser";
 
+/**
+ * Format date as YYYY-MM-DD using local timezone (not UTC)
+ * Prevents date shifting when server timezone differs from UTC
+ */
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 interface UploadResponse {
   success: boolean;
   message: string;
@@ -165,20 +176,32 @@ export async function POST(request: NextRequest) {
 
     // Start transaction
     const result_tx = await prisma.$transaction(async (tx) => {
-      // Step 1: Delete existing sales data for this month/year
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
+      // Step 1: Collect unique dates from parsed data
+      const uniqueDates = new Set<string>();
+      parsedData.forEach(row => {
+        uniqueDates.add(formatDateLocal(row.tanggal));
+      });
+
+      // Step 2: Delete existing sales data ONLY for the specific dates being uploaded
+      const dateConditions = Array.from(uniqueDates).map(dateStr => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const startOfDay = new Date(y, m - 1, d, 0, 0, 0);
+        const endOfDay = new Date(y, m - 1, d, 23, 59, 59);
+        return {
+          saleDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        };
+      });
 
       const deleteResult = await tx.sale.deleteMany({
         where: {
-          saleDate: {
-            gte: startDate,
-            lte: endDate,
-          },
+          OR: dateConditions,
         },
       });
 
-      // Step 2: Prepare data for batch insert
+      // Step 3: Prepare data for batch insert
       const salesDataToInsert: Prisma.SaleCreateManyInput[] = parsedData.map(row => ({
         saleDate: row.tanggal,
         locationId: locationMap.get(row.kode_lokasi.toUpperCase())!,
@@ -189,7 +212,7 @@ export async function POST(request: NextRequest) {
         updatedBy: userId,
       }));
 
-      // Step 3: Batch insert (1000 rows per batch)
+      // Step 4: Batch insert (1000 rows per batch)
       const BATCH_SIZE = 1000;
       let totalInserted = 0;
 

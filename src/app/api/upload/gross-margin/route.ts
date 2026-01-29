@@ -152,32 +152,54 @@ export async function POST(request: NextRequest) {
 
     // Start transaction
     const result_tx = await prisma.$transaction(async (tx) => {
-      // Step 1: Delete existing gross margin data for this month/year
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 0, 23, 59, 59);
+      // Step 1: Collect unique dates from parsed data
+      const uniqueDates = new Set<string>();
+      parsedData.forEach(row => {
+        uniqueDates.add(formatDateLocal(row.recordDate));
+      });
+
+      // Step 2: Delete existing gross margin data ONLY for the specific dates being uploaded
+      // Create date ranges for each unique date (start of day to end of day)
+      const dateConditions = Array.from(uniqueDates).map(dateStr => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const startOfDay = new Date(y, m - 1, d, 0, 0, 0);
+        const endOfDay = new Date(y, m - 1, d, 23, 59, 59);
+        return {
+          recordDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        };
+      });
 
       const deleteResult = await tx.grossMargin.deleteMany({
         where: {
-          recordDate: {
-            gte: startDate,
-            lte: endDate,
-          },
+          OR: dateConditions,
         },
       });
 
-      // Step 2: Get all locations and their types
+      // Step 3: Get all locations and their types
       const locations = await tx.location.findMany({
         select: { id: true, type: true }
       });
       const locationTypeMap = new Map(locations.map(l => [l.id, l.type]));
 
-      // Step 3: Fetch sales data for the same period to get actual omzet
+      // Step 4: Fetch sales data for the specific dates to get actual omzet
+      const saleDateConditions = Array.from(uniqueDates).map(dateStr => {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const startOfDay = new Date(y, m - 1, d, 0, 0, 0);
+        const endOfDay = new Date(y, m - 1, d, 23, 59, 59);
+        return {
+          saleDate: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        };
+      });
+
       const sales = await tx.sale.findMany({
         where: {
-          saleDate: {
-            gte: startDate,
-            lte: endDate,
-          },
+          OR: saleDateConditions,
         },
         select: {
           saleDate: true,
@@ -197,7 +219,7 @@ export async function POST(request: NextRequest) {
         salesMap.set(key, current + Number(sale.amount));
       });
 
-      // Step 4: Prepare data for batch insert
+      // Step 5: Prepare data for batch insert
       // Parser provides marginAmount (PENCAPAIAN from Excel)
       // Get omzet from Sales table
       // Calculate: hppAmount = omzet - marginAmount
@@ -233,7 +255,7 @@ export async function POST(request: NextRequest) {
         };
       });
 
-      // Step 5: Batch insert (1000 rows per batch)
+      // Step 6: Batch insert (1000 rows per batch)
       const BATCH_SIZE = 1000;
       let totalInserted = 0;
 
