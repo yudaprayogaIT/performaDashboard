@@ -1,6 +1,17 @@
 import type { DailySales } from "./mock-data-daily";
 import type { PeriodType } from "@/components/dashboard/period-selector";
 
+/**
+ * Format date as YYYY-MM-DD using local timezone (not UTC)
+ * Prevents date shifting when server timezone differs from UTC
+ */
+function formatDateLocal(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 export interface AggregatedSalesData {
     period: string;
     periodStart: Date; // For sorting
@@ -76,26 +87,26 @@ function getPeriodKey(date: Date, periodType: PeriodType): string {
     switch (periodType) {
         case "weekly": {
             const monday = getMondayOfWeek(date);
-            return monday.toISOString().split("T")[0];
+            return formatDateLocal(monday);
         }
         case "monthly": {
             const firstDay = getFirstDayOfMonth(date);
-            return firstDay.toISOString().split("T")[0];
+            return formatDateLocal(firstDay);
         }
         case "quarterly": {
             const firstDay = getFirstDayOfQuarter(date);
-            return firstDay.toISOString().split("T")[0];
+            return formatDateLocal(firstDay);
         }
         case "semester": {
             const firstDay = getFirstDayOfSemester(date);
-            return firstDay.toISOString().split("T")[0];
+            return formatDateLocal(firstDay);
         }
         case "yearly": {
             const firstDay = getFirstDayOfYear(date);
-            return firstDay.toISOString().split("T")[0];
+            return formatDateLocal(firstDay);
         }
         default:
-            return date.toISOString().split("T")[0];
+            return formatDateLocal(date);
     }
 }
 

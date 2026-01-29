@@ -207,12 +207,13 @@ export default function DashboardPage() {
 
   // ✨ UPDATED: All comparisons now use salesTrendComparison (real-time data)
   // Daily comparison (yesterday vs day before yesterday) - using COMPARISON data
+  // baseOffset=1 means "current" is yesterday, daysAgo=1 means compare to day before
   const comparisonDaily = useMemo(
-    () => calculateComparison(salesTrendComparison, "total", 1),
+    () => calculateComparison(salesTrendComparison, "total", 1, 1),
     [salesTrendComparison],
   );
   const grossMarginDaily = useMemo(
-    () => calculateComparison(salesTrendComparison, "totalGrossMargin", 1),
+    () => calculateComparison(salesTrendComparison, "totalGrossMargin", 1, 1),
     [salesTrendComparison],
   );
 

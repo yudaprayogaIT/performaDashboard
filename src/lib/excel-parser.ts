@@ -84,11 +84,23 @@ function parseDate(value: any): Date | null {
 
   // Jika Excel serial number
   if (typeof value === 'number') {
-    // Excel stores dates as number of days since 1900-01-01
-    const excelEpoch = new Date(1900, 0, 1);
-    const date = new Date(excelEpoch.getTime() + (value - 2) * 86400000);
+    // Excel stores dates as number of days since 1900-01-01 (in local time context)
+    // We calculate in UTC first, then extract the date components to create a local date
+    // This ensures the calendar date is preserved regardless of server timezone
+    const excelEpochUTC = Date.UTC(1900, 0, 1); // Jan 1, 1900 in UTC
+    const utcMillis = excelEpochUTC + (value - 2) * 86400000;
+    const utcDate = new Date(utcMillis);
+
+    // Create a LOCAL date with the same year/month/day as the UTC date
+    // This preserves the calendar date (e.g., "27 Jan" stays "27 Jan")
+    const date = new Date(
+      utcDate.getUTCFullYear(),
+      utcDate.getUTCMonth(),
+      utcDate.getUTCDate(),
+      12, 0, 0, 0  // Set to noon to avoid any edge cases
+    );
+
     if (!isNaN(date.getTime())) {
-      date.setHours(12, 0, 0, 0);
       return date;
     }
   }

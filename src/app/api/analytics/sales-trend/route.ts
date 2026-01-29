@@ -4,6 +4,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
+/**
+ * Format date as YYYY-MM-DD using local timezone (not UTC)
+ * Prevents date shifting when server timezone differs from UTC
+ */
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 interface DailySales {
   date: string;
   local: number;
@@ -169,7 +180,7 @@ export async function GET(request: NextRequest) {
     const salesByDate = new Map<string, { local: number; cabang: number }>();
 
     sales.forEach((sale) => {
-      const dateKey = sale.saleDate.toISOString().split("T")[0];
+      const dateKey = formatDateLocal(sale.saleDate);
       const locationType = locationTypeMap.get(sale.locationId) || "LOCAL";
 
       const existing = salesByDate.get(dateKey) || { local: 0, cabang: 0 };
@@ -185,7 +196,7 @@ export async function GET(request: NextRequest) {
     const marginsByDate = new Map<string, { local: number; cabang: number }>();
 
     grossMargins.forEach((gm) => {
-      const dateKey = gm.recordDate.toISOString().split("T")[0];
+      const dateKey = formatDateLocal(gm.recordDate);
 
       const existing = marginsByDate.get(dateKey) || { local: 0, cabang: 0 };
       if (gm.locationType === "CABANG") {
@@ -201,7 +212,7 @@ export async function GET(request: NextRequest) {
     const currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
-      const dateKey = currentDate.toISOString().split("T")[0];
+      const dateKey = formatDateLocal(currentDate);
 
       const salesData = salesByDate.get(dateKey) || { local: 0, cabang: 0 };
       const marginData = marginsByDate.get(dateKey) || { local: 0, cabang: 0 };

@@ -6,6 +6,17 @@ import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { parseGrossMarginExcel } from "@/lib/excel-parser";
 
+/**
+ * Format date as YYYY-MM-DD using local timezone (not UTC)
+ * Prevents date shifting when server timezone differs from UTC
+ */
+function formatDateLocal(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 interface UploadResponse {
   success: boolean;
   message: string;
@@ -180,7 +191,7 @@ export async function POST(request: NextRequest) {
       const salesMap = new Map<string, number>();
       sales.forEach(sale => {
         const locationType = locationTypeMap.get(sale.locationId) || 'LOCAL';
-        const dateKey = sale.saleDate.toISOString().split('T')[0];
+        const dateKey = formatDateLocal(sale.saleDate);
         const key = `${dateKey}_${sale.categoryId}_${locationType}`;
         const current = salesMap.get(key) || 0;
         salesMap.set(key, current + Number(sale.amount));
@@ -193,7 +204,7 @@ export async function POST(request: NextRequest) {
       //            marginPercent = (marginAmount / omzet) * 100
       const gmDataToInsert: Prisma.GrossMarginCreateManyInput[] = parsedData.map(row => {
         const categoryId = categoryMap.get(row.categoryName.toUpperCase())!;
-        const dateKey = row.recordDate.toISOString().split('T')[0];
+        const dateKey = formatDateLocal(row.recordDate);
         const key = `${dateKey}_${categoryId}_${row.locationType}`;
 
         // Get omzet from sales data
