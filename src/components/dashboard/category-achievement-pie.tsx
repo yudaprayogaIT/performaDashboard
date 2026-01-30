@@ -12,7 +12,7 @@ interface CategoryAchievementPieProps {
 // Helper function to determine color based on achievement percentage
 const getColorByAchievement = (percentage: number): string => {
   if (percentage < 50) return "#ef4444"; // Red
-  if (percentage < 75) return "#eab308"; // Yellow
+  if (percentage < 100) return "#eab308"; // Yellow
   return "#22c55e"; // Green
 };
 
@@ -38,9 +38,9 @@ export default function CategoryAchievementPie({
   );
 
   // Calculate statistics
-  const goodCount = sortedData.filter((d) => d.achievement >= 75).length;
+  const goodCount = sortedData.filter((d) => d.achievement >= 100).length;
   const averageCount = sortedData.filter(
-    (d) => d.achievement >= 50 && d.achievement < 75,
+    (d) => d.achievement >= 50 && d.achievement < 100,
   ).length;
   const lowCount = sortedData.filter((d) => d.achievement < 50).length;
 
@@ -57,11 +57,11 @@ export default function CategoryAchievementPie({
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-yellow-500"></div>
-              <span className="text-white/60">50-75% (Average)</span>
+              <span className="text-white/60">50-100% (Average)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-green-500"></div>
-              <span className="text-white/60">75-100%+ (Good)</span>
+              <span className="text-white/60">100%+ (Good)</span>
             </div>
           </div>
         </div>
@@ -76,11 +76,11 @@ export default function CategoryAchievementPie({
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-yellow-500"></div>
-              <span className="text-white/60">50-75% (Average)</span>
+              <span className="text-white/60">50-100% (Average)</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded bg-green-500"></div>
-              <span className="text-white/60">75-100%+ (Good)</span>
+              <span className="text-white/60">100%+ (Good)</span>
             </div>
           </div>
         </div>
@@ -90,11 +90,11 @@ export default function CategoryAchievementPie({
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-3 text-center">
           <p className="text-3xl font-bold text-green-400">{goodCount}</p>
-          <p className="text-xs text-white/60 mt-1">Good (&gt;75%)</p>
+          <p className="text-xs text-white/60 mt-1">Good (&gt;100%)</p>
         </div>
         <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-3 text-center">
           <p className="text-3xl font-bold text-yellow-400">{averageCount}</p>
-          <p className="text-xs text-white/60 mt-1">Average (50-75%)</p>
+          <p className="text-xs text-white/60 mt-1">Average (50-100%)</p>
         </div>
         <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-center">
           <p className="text-3xl font-bold text-red-400">{lowCount}</p>

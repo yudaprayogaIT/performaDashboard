@@ -12,14 +12,14 @@ interface CategoryAchievementCardProps {
 // Helper function to determine color based on achievement percentage
 const getColorByAchievement = (percentage: number): string => {
   if (percentage < 50) return "#ef4444"; // Red
-  if (percentage < 75) return "#eab308"; // Yellow
+  if (percentage < 100) return "#eab308"; // Yellow
   return "#22c55e"; // Green
 };
 
 // Helper function to determine status text
 const getStatusText = (percentage: number): string => {
   if (percentage < 50) return "Low";
-  if (percentage < 75) return "Average";
+  if (percentage < 100) return "Average";
   return "Good";
 };
 

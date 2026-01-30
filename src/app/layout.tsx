@@ -4,6 +4,9 @@ import "./globals.css";
 export const metadata: Metadata = {
     title: "Sales Dashboard - Login",
     description: "Secure access for Directors and Administrators to monitor global sales performance.",
+    icons: {
+    icon: "/images/logo_etm.png",
+  },
 };
 
 export default function RootLayout({
@@ -18,6 +21,7 @@ export default function RootLayout({
                     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
                     rel="stylesheet"
                 />
+                <link rel="icon" type="image/x-icon" href="favicon.ico"></link>
             </head>
             <body className="font-display antialiased text-white bg-background-dark">
                 {children}
