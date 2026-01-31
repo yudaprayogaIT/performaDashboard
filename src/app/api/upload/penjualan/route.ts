@@ -5,6 +5,7 @@ import { verifyToken, AUTH_COOKIE_NAME } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { parseOmzetExcel } from "@/lib/excel-parser";
+import { canUploadNow } from "@/lib/doctype/validator";
 
 /**
  * Format date as YYYY-MM-DD using local timezone (not UTC)
@@ -58,6 +59,15 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = result.payload.userId;
+
+    // Check DocType upload permission and deadline
+    const uploadValidation = await canUploadNow(userId, "penjualan");
+    if (!uploadValidation.allowed) {
+      return NextResponse.json<UploadResponse>(
+        { success: false, message: uploadValidation.message || "Upload tidak diizinkan" },
+        { status: 403 }
+      );
+    }
 
     // Get FormData
     const formData = await request.formData();

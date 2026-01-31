@@ -116,6 +116,12 @@ const navItems: NavItem[] = [
     anyPermissions: ["manage_roles", "manage_permissions", "manage_users"],
     children: [
       {
+        label: "DocType",
+        href: "/admin/doctype",
+        icon: "description",
+        permission: "manage_users",
+      },
+      {
         label: "Role Management",
         href: "/admin/roles",
         icon: "shield",

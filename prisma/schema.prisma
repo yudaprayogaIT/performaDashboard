@@ -54,8 +54,9 @@ model Role {
   updatedBy Int?      @map("updated_by")
 
   // Relations
-  userRoles   UserRole[]
-  permissions RolePermission[]
+  userRoles          UserRole[]
+  permissions        RolePermission[]
+  docTypePermissions DocTypePermission[]
 
   @@map("roles")
 }
@@ -437,4 +438,118 @@ model GrossMargin {
   @@index([recordDate, locationType])
   @@unique([recordDate, categoryId, locationType], name: "unique_gm_record")
   @@map("gross_margins")
+}
+
+// =============================================
+// DOCTYPE SYSTEM (Dynamic Document Types)
+// =============================================
+
+model DocType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100) // "Penjualan", "Piutang"
+  slug        String   @unique @db.VarChar(50)  // "penjualan", "piutang"
+  tableName   String   @unique @db.VarChar(100) @map("table_name") // "doc_penjualan"
+  description String?  @db.Text
+  icon        String?  @db.VarChar(50) // Lucide icon name
+
+  // Upload settings
+  uploadDeadlineHour   Int?    @map("upload_deadline_hour") // null = no deadline, 0-23
+  uploadDeadlineMinute Int     @default(0) @map("upload_deadline_minute") // 0-59
+  isUploadActive       Boolean @default(true) @map("is_upload_active")
+
+  // Display settings
+  showInDashboard Boolean @default(false) @map("show_in_dashboard")
+  dashboardOrder  Int     @default(0) @map("dashboard_order")
+
+  // Status
+  isActive Boolean @default(true) @map("is_active")
+  isSystem Boolean @default(false) @map("is_system") // System DocTypes can't be deleted
+
+  // Audit fields
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy Int?     @map("created_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy Int?     @map("updated_by")
+
+  // Relations
+  fields      DocTypeField[]
+  permissions DocTypePermission[]
+
+  @@map("doc_types")
+}
+
+model DocTypeField {
+  id        Int     @id @default(autoincrement())
+  docTypeId Int     @map("doc_type_id")
+  docType   DocType @relation(fields: [docTypeId], references: [id], onDelete: Cascade)
+
+  name      String    @db.VarChar(100) // Display name: "Tanggal Transaksi"
+  fieldName String    @db.VarChar(50) @map("field_name") // Column name: "tanggal_transaksi"
+  fieldType FieldType @map("field_type") // DATE, NUMBER, CURRENCY, TEXT, SELECT
+
+  // Validation
+  isRequired   Boolean @default(false) @map("is_required")
+  isUnique     Boolean @default(false) @map("is_unique")
+  defaultValue String? @db.VarChar(255) @map("default_value")
+
+  // For SELECT type - JSON array of options
+  options Json? // ["LOCAL", "CABANG"] for dropdown
+
+  // For NUMBER/CURRENCY type
+  minValue Decimal? @db.Decimal(18, 2) @map("min_value")
+  maxValue Decimal? @db.Decimal(18, 2) @map("max_value")
+
+  // For REFERENCE type - reference to another table
+  referenceTable String? @db.VarChar(100) @map("reference_table") // "locations", "categories"
+  referenceField String? @db.VarChar(50) @map("reference_field")  // "id"
+
+  // Excel mapping
+  excelColumn String? @db.VarChar(100) @map("excel_column") // Column header in Excel
+
+  // Display settings
+  sortOrder  Int     @default(0) @map("sort_order")
+  showInList Boolean @default(true) @map("show_in_list")
+  showInForm Boolean @default(true) @map("show_in_form")
+
+  // Audit fields
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([docTypeId, fieldName])
+  @@map("doc_type_fields")
+}
+
+enum FieldType {
+  TEXT
+  NUMBER
+  CURRENCY
+  DATE
+  DATETIME
+  SELECT
+  BOOLEAN
+  REFERENCE // Foreign key to other table (locations, categories)
+}
+
+model DocTypePermission {
+  id        Int     @id @default(autoincrement())
+  docTypeId Int     @map("doc_type_id")
+  docType   DocType @relation(fields: [docTypeId], references: [id], onDelete: Cascade)
+  roleId    Int     @map("role_id")
+  role      Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  canView   Boolean @default(false) @map("can_view")
+  canUpload Boolean @default(false) @map("can_upload")
+  canEdit   Boolean @default(false) @map("can_edit")
+  canDelete Boolean @default(false) @map("can_delete")
+  canExport Boolean @default(false) @map("can_export")
+
+  // Bypass time restriction for upload
+  bypassDeadline Boolean @default(false) @map("bypass_deadline")
+
+  // Audit fields
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([docTypeId, roleId])
+  @@map("doc_type_permissions")
 }

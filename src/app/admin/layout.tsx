@@ -11,11 +11,11 @@ export default async function AdminLayout({
 }) {
   return (
     <PermissionGate anyPermissions={['manage_roles', 'manage_permissions', 'manage_users']} redirectTo="/access-denied">
-      <div className="min-h-screen bg-gradient-to-br from-[#1A153A] via-[#1c153c] to-[#2C0B52]">
+      <div className="min-h-screen bg-background-dark">
         <Sidebar />
-        <div className="lg:ml-64">
+        <div className="ml-64">
           <Header />
-          <main>
+          <main className="p-6">
             {children}
           </main>
         </div>

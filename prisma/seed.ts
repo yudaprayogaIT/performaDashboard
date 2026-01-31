@@ -1,6 +1,6 @@
 // prisma/seed.ts
 
-import { PrismaClient, LocationType, PermissionModule } from "@prisma/client";
+import { PrismaClient, LocationType, PermissionModule, FieldType } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -609,6 +609,421 @@ async function main() {
   console.log("✅ Assigned roles to all users");
 
   // =============================================
+  // SEED DOCTYPES (System DocTypes)
+  // =============================================
+  console.log("📄 Seeding DocTypes...");
+
+  // 1. Penjualan (Sales) DocType
+  const penjualanDocType = await prisma.docType.upsert({
+    where: { slug: "penjualan" },
+    update: {},
+    create: {
+      name: "Penjualan",
+      slug: "penjualan",
+      tableName: "sales", // Using existing table for now
+      description: "Data penjualan harian per lokasi dan kategori",
+      icon: "ShoppingCart",
+      uploadDeadlineHour: 9,
+      uploadDeadlineMinute: 0,
+      isUploadActive: true,
+      showInDashboard: true,
+      dashboardOrder: 1,
+      isActive: true,
+      isSystem: true,
+    },
+  });
+
+  // Penjualan Fields
+  const penjualanFields = [
+    {
+      name: "Tanggal",
+      fieldName: "sale_date",
+      fieldType: FieldType.DATE,
+      isRequired: true,
+      excelColumn: "TANGGAL",
+      sortOrder: 1,
+    },
+    {
+      name: "Lokasi",
+      fieldName: "location_id",
+      fieldType: FieldType.REFERENCE,
+      isRequired: true,
+      referenceTable: "locations",
+      referenceField: "id",
+      excelColumn: "KODE_LOKASI",
+      sortOrder: 2,
+    },
+    {
+      name: "Kategori",
+      fieldName: "category_id",
+      fieldType: FieldType.REFERENCE,
+      isRequired: true,
+      referenceTable: "categories",
+      referenceField: "id",
+      excelColumn: "KATEGORI",
+      sortOrder: 3,
+    },
+    {
+      name: "Nama Item",
+      fieldName: "item_name",
+      fieldType: FieldType.TEXT,
+      isRequired: false,
+      excelColumn: "NAMA_ITEM",
+      sortOrder: 4,
+    },
+    {
+      name: "Quantity",
+      fieldName: "quantity",
+      fieldType: FieldType.NUMBER,
+      isRequired: false,
+      defaultValue: "1",
+      excelColumn: "QTY",
+      sortOrder: 5,
+    },
+    {
+      name: "Amount",
+      fieldName: "amount",
+      fieldType: FieldType.CURRENCY,
+      isRequired: true,
+      excelColumn: "AMOUNT",
+      sortOrder: 6,
+    },
+    {
+      name: "Notes",
+      fieldName: "notes",
+      fieldType: FieldType.TEXT,
+      isRequired: false,
+      showInList: false,
+      excelColumn: "NOTES",
+      sortOrder: 7,
+    },
+  ];
+
+  for (const field of penjualanFields) {
+    await prisma.docTypeField.upsert({
+      where: {
+        docTypeId_fieldName: {
+          docTypeId: penjualanDocType.id,
+          fieldName: field.fieldName,
+        },
+      },
+      update: {},
+      create: {
+        docTypeId: penjualanDocType.id,
+        ...field,
+      },
+    });
+  }
+
+  // 2. Gross Margin DocType
+  const grossMarginDocType = await prisma.docType.upsert({
+    where: { slug: "gross-margin" },
+    update: {},
+    create: {
+      name: "Gross Margin",
+      slug: "gross-margin",
+      tableName: "gross_margins", // Using existing table for now
+      description: "Data gross margin (omzet - HPP) per kategori dan lokasi",
+      icon: "TrendingUp",
+      uploadDeadlineHour: 13,
+      uploadDeadlineMinute: 0,
+      isUploadActive: true,
+      showInDashboard: true,
+      dashboardOrder: 2,
+      isActive: true,
+      isSystem: true,
+    },
+  });
+
+  // Gross Margin Fields
+  const grossMarginFields = [
+    {
+      name: "Tanggal",
+      fieldName: "record_date",
+      fieldType: FieldType.DATE,
+      isRequired: true,
+      excelColumn: "TANGGAL",
+      sortOrder: 1,
+    },
+    {
+      name: "Kategori",
+      fieldName: "category_id",
+      fieldType: FieldType.REFERENCE,
+      isRequired: true,
+      referenceTable: "categories",
+      referenceField: "id",
+      excelColumn: "KATEGORI",
+      sortOrder: 2,
+    },
+    {
+      name: "Tipe Lokasi",
+      fieldName: "location_type",
+      fieldType: FieldType.SELECT,
+      isRequired: true,
+      options: ["LOCAL", "CABANG"],
+      excelColumn: "TIPE_LOKASI",
+      sortOrder: 3,
+    },
+    {
+      name: "Omzet",
+      fieldName: "omzet_amount",
+      fieldType: FieldType.CURRENCY,
+      isRequired: true,
+      excelColumn: "OMZET",
+      sortOrder: 4,
+    },
+    {
+      name: "HPP",
+      fieldName: "hpp_amount",
+      fieldType: FieldType.CURRENCY,
+      isRequired: true,
+      excelColumn: "HPP",
+      sortOrder: 5,
+    },
+    {
+      name: "Margin",
+      fieldName: "margin_amount",
+      fieldType: FieldType.CURRENCY,
+      isRequired: true,
+      excelColumn: "MARGIN",
+      sortOrder: 6,
+    },
+    {
+      name: "Margin %",
+      fieldName: "margin_percent",
+      fieldType: FieldType.NUMBER,
+      isRequired: true,
+      excelColumn: "MARGIN_PERSEN",
+      sortOrder: 7,
+    },
+  ];
+
+  for (const field of grossMarginFields) {
+    await prisma.docTypeField.upsert({
+      where: {
+        docTypeId_fieldName: {
+          docTypeId: grossMarginDocType.id,
+          fieldName: field.fieldName,
+        },
+      },
+      update: {},
+      create: {
+        docTypeId: grossMarginDocType.id,
+        ...field,
+      },
+    });
+  }
+
+  // 3. Retur DocType
+  const returDocType = await prisma.docType.upsert({
+    where: { slug: "retur" },
+    update: {},
+    create: {
+      name: "Retur",
+      slug: "retur",
+      tableName: "returs", // Using existing table for now
+      description: "Data retur penjualan",
+      icon: "RotateCcw",
+      uploadDeadlineHour: 17,
+      uploadDeadlineMinute: 0,
+      isUploadActive: true,
+      showInDashboard: true,
+      dashboardOrder: 3,
+      isActive: true,
+      isSystem: true,
+    },
+  });
+
+  // Retur Fields
+  const returFields = [
+    {
+      name: "No. Invoice",
+      fieldName: "sales_invoice",
+      fieldType: FieldType.TEXT,
+      isRequired: true,
+      excelColumn: "NO_INVOICE",
+      sortOrder: 1,
+    },
+    {
+      name: "Tanggal Posting",
+      fieldName: "posting_date",
+      fieldType: FieldType.DATE,
+      isRequired: true,
+      excelColumn: "TANGGAL",
+      sortOrder: 2,
+    },
+    {
+      name: "Nilai Jual",
+      fieldName: "selling_amount",
+      fieldType: FieldType.CURRENCY,
+      isRequired: true,
+      excelColumn: "NILAI_JUAL",
+      sortOrder: 3,
+    },
+    {
+      name: "Nilai Beli (HPP)",
+      fieldName: "buying_amount",
+      fieldType: FieldType.CURRENCY,
+      isRequired: true,
+      excelColumn: "NILAI_BELI",
+      sortOrder: 4,
+    },
+    {
+      name: "Kategori",
+      fieldName: "category_id",
+      fieldType: FieldType.REFERENCE,
+      isRequired: true,
+      referenceTable: "categories",
+      referenceField: "id",
+      excelColumn: "KATEGORI",
+      sortOrder: 5,
+    },
+    {
+      name: "Tipe Lokasi",
+      fieldName: "location_type",
+      fieldType: FieldType.SELECT,
+      isRequired: true,
+      options: ["LOCAL", "CABANG"],
+      excelColumn: "TIPE_LOKASI",
+      sortOrder: 6,
+    },
+  ];
+
+  for (const field of returFields) {
+    await prisma.docTypeField.upsert({
+      where: {
+        docTypeId_fieldName: {
+          docTypeId: returDocType.id,
+          fieldName: field.fieldName,
+        },
+      },
+      update: {},
+      create: {
+        docTypeId: returDocType.id,
+        ...field,
+      },
+    });
+  }
+
+  console.log("✅ Created 3 DocTypes with fields");
+
+  // =============================================
+  // SEED DOCTYPE PERMISSIONS
+  // =============================================
+  console.log("🔐 Seeding DocType permissions...");
+
+  // ADMINISTRATOR - Full access to all DocTypes with bypass deadline
+  const allDocTypes = [penjualanDocType, grossMarginDocType, returDocType];
+  for (const docType of allDocTypes) {
+    await prisma.docTypePermission.upsert({
+      where: {
+        docTypeId_roleId: {
+          docTypeId: docType.id,
+          roleId: administratorRole.id,
+        },
+      },
+      update: {},
+      create: {
+        docTypeId: docType.id,
+        roleId: administratorRole.id,
+        canView: true,
+        canUpload: true,
+        canEdit: true,
+        canDelete: true,
+        canExport: true,
+        bypassDeadline: true, // Admin can upload anytime
+      },
+    });
+  }
+
+  // DIREKTUR - View and Export only
+  for (const docType of allDocTypes) {
+    await prisma.docTypePermission.upsert({
+      where: {
+        docTypeId_roleId: {
+          docTypeId: docType.id,
+          roleId: direkturRole.id,
+        },
+      },
+      update: {},
+      create: {
+        docTypeId: docType.id,
+        roleId: direkturRole.id,
+        canView: true,
+        canUpload: false,
+        canEdit: false,
+        canDelete: false,
+        canExport: true,
+        bypassDeadline: false,
+      },
+    });
+  }
+
+  // MARKETING - Penjualan only
+  await prisma.docTypePermission.upsert({
+    where: {
+      docTypeId_roleId: {
+        docTypeId: penjualanDocType.id,
+        roleId: marketingRole.id,
+      },
+    },
+    update: {},
+    create: {
+      docTypeId: penjualanDocType.id,
+      roleId: marketingRole.id,
+      canView: true,
+      canUpload: true,
+      canEdit: false,
+      canDelete: false,
+      canExport: false,
+      bypassDeadline: false,
+    },
+  });
+
+  // ACCOUNTING - Gross Margin and Retur
+  await prisma.docTypePermission.upsert({
+    where: {
+      docTypeId_roleId: {
+        docTypeId: grossMarginDocType.id,
+        roleId: accountingRole.id,
+      },
+    },
+    update: {},
+    create: {
+      docTypeId: grossMarginDocType.id,
+      roleId: accountingRole.id,
+      canView: true,
+      canUpload: true,
+      canEdit: false,
+      canDelete: false,
+      canExport: false,
+      bypassDeadline: false,
+    },
+  });
+
+  await prisma.docTypePermission.upsert({
+    where: {
+      docTypeId_roleId: {
+        docTypeId: returDocType.id,
+        roleId: accountingRole.id,
+      },
+    },
+    update: {},
+    create: {
+      docTypeId: returDocType.id,
+      roleId: accountingRole.id,
+      canView: true,
+      canUpload: true,
+      canEdit: false,
+      canDelete: false,
+      canExport: false,
+      bypassDeadline: false,
+    },
+  });
+
+  console.log("✅ Assigned DocType permissions to all roles");
+
+  // =============================================
   // SUMMARY
   // =============================================
   console.log("\n========================================");
@@ -620,6 +1035,7 @@ async function main() {
   console.log(`   - Permissions: 18 (granular)`);
   console.log(`   - Roles: 4 (ADMINISTRATOR, DIREKTUR, MARKETING, ACCOUNTING)`);
   console.log(`   - Users: 4`);
+  console.log(`   - DocTypes: 3 (Penjualan, Gross Margin, Retur)`);
   console.log("\n🔐 Test Credentials:");
   console.log("   - administrator@performa.com / ekatunggal123 (ADMINISTRATOR - All Access)");
   console.log("   - direktur@performa.com / password123 (DIREKTUR - View Dashboard & Export)");
@@ -630,6 +1046,11 @@ async function main() {
   console.log("   - DIREKTUR: 5 permissions (view_dashboard, export_dashboard, view_all_uploads, view_audit_log, export_sales_data)");
   console.log("   - MARKETING: 2 permissions (upload_omzet, view_upload_history)");
   console.log("   - ACCOUNTING: 3 permissions (upload_gross_margin, upload_retur, view_upload_history)");
+  console.log("\n📄 DocType Upload Deadlines (WIB):");
+  console.log("   - Penjualan: 09:00 (MARKETING can upload)");
+  console.log("   - Gross Margin: 13:00 (ACCOUNTING can upload)");
+  console.log("   - Retur: 17:00 (ACCOUNTING can upload)");
+  console.log("   - ADMINISTRATOR can bypass all deadlines");
   console.log("========================================\n");
 }
 

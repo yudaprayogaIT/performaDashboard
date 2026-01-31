@@ -1,11 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import FileUploader from "@/components/upload/file-uploader";
 import FilePreview from "@/components/upload/file-preview";
 
-// Data type options
-type DataType = "penjualan" | "gross_margin" | "retur";
+// DocType from API
+interface UploadableDocType {
+    id: number;
+    name: string;
+    slug: string;
+    icon: string | null;
+    description: string | null;
+    deadline: {
+        hour: number;
+        minute: number;
+        display: string;
+    } | null;
+    isSystem: boolean;
+}
 
 // Modal state type
 interface ModalState {
@@ -22,41 +34,19 @@ interface ModalState {
     };
 }
 
-const dataTypeOptions: {
-    value: DataType;
-    label: string;
-    description: string;
-    templateUrl: string;
-    icon: string;
-}[] = [
-    {
-        value: "penjualan",
-        label: "Data Penjualan",
-        description: "Upload data omzet/penjualan harian",
-        templateUrl: "/templates/template_upload_penjualan.xlsx",
-        icon: "payments",
-    },
-    {
-        value: "gross_margin",
-        label: "Data Gross Margin",
-        description: "Upload data pencapaian & margin per kategori",
-        templateUrl: "/templates/template_upload_gross_margin.xlsx",
-        icon: "trending_up",
-    },
-    {
-        value: "retur",
-        label: "Data Retur",
-        description: "Upload data retur/pengembalian barang",
-        templateUrl: "/templates/template_upload_retur.xlsx",
-        icon: "assignment_return",
-    },
-];
+// Legacy endpoint mapping for system DocTypes
+const systemDocTypeEndpoints: Record<string, string> = {
+    "penjualan": "/api/upload/penjualan",
+    "gross-margin": "/api/upload/gross-margin",
+    "retur": "/api/upload/retur",
+};
 
 export default function UploadPage() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [selectedDataType, setSelectedDataType] = useState<DataType>("penjualan");
+    const [selectedDocType, setSelectedDocType] = useState<string | null>(null);
     const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
+    const [isDownloadingTemplate, setIsDownloadingTemplate] = useState<string | null>(null);
     const [modal, setModal] = useState<ModalState>({
         isOpen: false,
         type: 'success',
@@ -64,7 +54,41 @@ export default function UploadPage() {
         message: '',
     });
 
-    const currentOption = dataTypeOptions.find((opt) => opt.value === selectedDataType)!;
+    // State for DocTypes fetching
+    const [docTypes, setDocTypes] = useState<UploadableDocType[]>([]);
+    const [docTypesLoading, setDocTypesLoading] = useState(true);
+    const [docTypesError, setDocTypesError] = useState<string | null>(null);
+
+    // Fetch uploadable DocTypes from API
+    const fetchDocTypes = useCallback(async () => {
+        try {
+            setDocTypesLoading(true);
+            setDocTypesError(null);
+            const response = await fetch('/api/doctype/uploadable');
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                setDocTypes(result.data);
+                // Auto-select first DocType
+                if (result.data.length > 0) {
+                    setSelectedDocType(result.data[0].slug);
+                }
+            } else {
+                setDocTypesError(result.message || 'Gagal memuat jenis data');
+            }
+        } catch (error) {
+            console.error('Error fetching DocTypes:', error);
+            setDocTypesError('Terjadi kesalahan saat memuat data');
+        } finally {
+            setDocTypesLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchDocTypes();
+    }, [fetchDocTypes]);
+
+    const currentDocType = docTypes.find((dt: UploadableDocType) => dt.slug === selectedDocType);
 
     const closeModal = () => {
         setModal(prev => ({ ...prev, isOpen: false }));
@@ -78,8 +102,50 @@ export default function UploadPage() {
         setSelectedFile(null);
     };
 
+    // Download template from API
+    const handleDownloadTemplate = async (slug: string) => {
+        setIsDownloadingTemplate(slug);
+        try {
+            const response = await fetch(`/api/doctype/${slug}/template`);
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Gagal download template');
+            }
+
+            // Get filename from Content-Disposition header or use default
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `template_upload_${slug}.xlsx`;
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="(.+)"/);
+                if (match) filename = match[1];
+            }
+
+            // Download the file
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error('Template download error:', error);
+            setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Download Gagal',
+                message: error instanceof Error ? error.message : 'Gagal download template',
+            });
+        } finally {
+            setIsDownloadingTemplate(null);
+            setShowTemplateDropdown(false);
+        }
+    };
+
     const handleUpload = async () => {
-        if (!selectedFile) return;
+        if (!selectedFile || !currentDocType) return;
 
         setIsUploading(true);
 
@@ -88,13 +154,15 @@ export default function UploadPage() {
             const formData = new FormData();
             formData.append('file', selectedFile);
 
-            // Determine API endpoint based on data type
-            const apiEndpoints: Record<DataType, string> = {
-                penjualan: '/api/upload/penjualan',
-                gross_margin: '/api/upload/gross-margin',
-                retur: '/api/upload/retur',
-            };
-            const apiEndpoint = apiEndpoints[selectedDataType];
+            // Determine API endpoint:
+            // - System DocTypes use legacy endpoints for backward compatibility
+            // - New DocTypes use generic endpoint
+            let apiEndpoint: string;
+            if (currentDocType.isSystem && systemDocTypeEndpoints[currentDocType.slug]) {
+                apiEndpoint = systemDocTypeEndpoints[currentDocType.slug];
+            } else {
+                apiEndpoint = `/api/doctype/${currentDocType.slug}`;
+            }
 
             // Send file to API
             const response = await fetch(apiEndpoint, {
@@ -109,7 +177,7 @@ export default function UploadPage() {
                 setModal({
                     isOpen: true,
                     type: 'success',
-                    title: `Upload ${currentOption.label} Berhasil!`,
+                    title: `Upload ${currentDocType.name} Berhasil!`,
                     message: result.message,
                     stats: result.stats,
                 });
@@ -136,6 +204,80 @@ export default function UploadPage() {
         }
     };
 
+    // Loading state
+    if (docTypesLoading) {
+        return (
+            <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white">Upload Data</h1>
+                        <p className="text-white/60 mt-1">Memuat jenis data...</p>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-4 bg-white/10 rounded w-1/4"></div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="h-24 bg-white/5 rounded-xl"></div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (docTypesError) {
+        return (
+            <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white">Upload Data</h1>
+                        <p className="text-white/60 mt-1">Import data ke sistem.</p>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-red-400">error</span>
+                        <div>
+                            <p className="font-bold text-white">Gagal memuat jenis data</p>
+                            <p className="text-sm text-white/60">
+                                {docTypesError}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // No DocTypes available
+    if (docTypes.length === 0) {
+        return (
+            <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white">Upload Data</h1>
+                        <p className="text-white/60 mt-1">Import data ke sistem.</p>
+                    </div>
+                </div>
+                <div className="rounded-2xl border border-yellow-500/30 bg-yellow-500/10 p-6">
+                    <div className="flex items-center gap-3">
+                        <span className="material-symbols-outlined text-yellow-400">info</span>
+                        <div>
+                            <p className="font-bold text-white">Tidak ada jenis data tersedia</p>
+                            <p className="text-sm text-white/60">
+                                Anda belum memiliki izin untuk mengupload data apapun. Hubungi administrator.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6">
             {/* Page Header */}
@@ -143,7 +285,7 @@ export default function UploadPage() {
                 <div>
                     <h1 className="text-3xl font-bold text-white">Upload Data</h1>
                     <p className="text-white/60 mt-1">
-                        Import data penjualan atau gross margin. Pilih jenis data dan download template yang sesuai.
+                        Pilih jenis data dan download template yang sesuai, lalu upload file Excel.
                     </p>
                 </div>
 
@@ -167,25 +309,29 @@ export default function UploadPage() {
                                 <p className="px-3 py-2 text-xs font-bold text-white/50 uppercase tracking-wider">
                                     Pilih Template
                                 </p>
-                                {dataTypeOptions.map((option) => (
-                                    <a
-                                        key={option.value}
-                                        href={option.templateUrl}
-                                        download
-                                        onClick={() => setShowTemplateDropdown(false)}
-                                        className="flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-white/5 transition-colors"
+                                {docTypes.map((dt: UploadableDocType) => (
+                                    <button
+                                        key={dt.slug}
+                                        onClick={() => handleDownloadTemplate(dt.slug)}
+                                        disabled={isDownloadingTemplate === dt.slug}
+                                        className="w-full flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-white/5 transition-colors text-left disabled:opacity-50"
                                     >
                                         <span className="material-symbols-outlined text-teal-accent mt-0.5">
-                                            {option.icon}
+                                            {dt.icon || "description"}
                                         </span>
-                                        <div>
-                                            <p className="font-semibold text-white">{option.label}</p>
-                                            <p className="text-xs text-white/50">{option.description}</p>
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-white">{dt.name}</p>
+                                            <p className="text-xs text-white/50">{dt.description || `Template upload ${dt.name}`}</p>
+                                            {dt.deadline && (
+                                                <p className="text-xs text-yellow-400 mt-1">
+                                                    Deadline: {dt.deadline.display}
+                                                </p>
+                                            )}
                                         </div>
                                         <span className="material-symbols-outlined text-white/30 ml-auto">
-                                            download
+                                            {isDownloadingTemplate === dt.slug ? "progress_activity" : "download"}
                                         </span>
-                                    </a>
+                                    </button>
                                 ))}
                             </div>
                         </div>
@@ -198,52 +344,58 @@ export default function UploadPage() {
                 <h3 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-4">
                     Jenis Data yang Diupload
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {dataTypeOptions.map((option) => (
+                <div className={`grid grid-cols-1 gap-4 ${docTypes.length <= 3 ? 'md:grid-cols-3' : docTypes.length <= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+                    {docTypes.map((dt: UploadableDocType) => (
                         <button
-                            key={option.value}
-                            onClick={() => setSelectedDataType(option.value)}
+                            key={dt.slug}
+                            onClick={() => setSelectedDocType(dt.slug)}
                             className={`flex items-start gap-4 p-4 rounded-xl border transition-all text-left ${
-                                selectedDataType === option.value
+                                selectedDocType === dt.slug
                                     ? "border-primary bg-primary/10"
                                     : "border-white/10 bg-white/5 hover:border-white/20"
                             }`}
                         >
                             <div
                                 className={`flex h-12 w-12 items-center justify-center rounded-xl ${
-                                    selectedDataType === option.value
+                                    selectedDocType === dt.slug
                                         ? "bg-primary/20"
                                         : "bg-white/5"
                                 }`}
                             >
                                 <span
                                     className={`material-symbols-outlined text-2xl ${
-                                        selectedDataType === option.value
+                                        selectedDocType === dt.slug
                                             ? "text-primary"
                                             : "text-white/50"
                                     }`}
                                 >
-                                    {option.icon}
+                                    {dt.icon || "description"}
                                 </span>
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
                                     <p
-                                        className={`font-bold ${
-                                            selectedDataType === option.value
+                                        className={`font-bold truncate ${
+                                            selectedDocType === dt.slug
                                                 ? "text-white"
                                                 : "text-white/70"
                                         }`}
                                     >
-                                        {option.label}
+                                        {dt.name}
                                     </p>
-                                    {selectedDataType === option.value && (
-                                        <span className="material-symbols-outlined text-primary text-sm">
+                                    {selectedDocType === dt.slug && (
+                                        <span className="material-symbols-outlined text-primary text-sm shrink-0">
                                             check_circle
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-sm text-white/50 mt-1">{option.description}</p>
+                                <p className="text-sm text-white/50 mt-1 line-clamp-2">{dt.description || `Upload data ${dt.name}`}</p>
+                                {dt.deadline && (
+                                    <p className="text-xs text-yellow-400 mt-2 flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-sm">schedule</span>
+                                        Deadline: {dt.deadline.display}
+                                    </p>
+                                )}
                             </div>
                         </button>
                     ))}
@@ -289,50 +441,43 @@ export default function UploadPage() {
                     </div>
 
                     {/* Template Info based on selected type */}
-                    <div className="bg-primary/20 rounded-xl p-4 border border-primary/30">
-                        <h5 className="text-xs font-bold text-primary uppercase mb-2">
-                            Template {currentOption.label}
-                        </h5>
-                        {selectedDataType === "penjualan" ? (
-                            <ul className="space-y-1 text-xs text-white/60">
-                                <li>• Kolom wajib: tanggal, kode_lokasi, kategori, amount</li>
-                                <li>• Kolom opsional: catatan</li>
-                                <li>• Sheet: Petunjuk, Data Penjualan, Referensi</li>
-                            </ul>
-                        ) : selectedDataType === "gross_margin" ? (
-                            <ul className="space-y-1 text-xs text-white/60">
-                                <li>• Format pivot: 1 baris per kategori</li>
-                                <li>• Kolom: Kategori, Tanggal, CABANG (Pencapaian, %), LOKAL (Pencapaian, %)</li>
-                                <li>• Pencapaian = Omzet, % = Margin Percentage</li>
-                                <li>• HPP & Margin dihitung otomatis dari data</li>
-                            </ul>
-                        ) : (
-                            <ul className="space-y-1 text-xs text-white/60">
-                                <li>• Kolom wajib: no_faktur, tanggal_posting, kategori, tipe_lokasi, nilai_jual, nilai_beli</li>
-                                <li>• Tipe Lokasi: LOCAL atau CABANG</li>
-                                <li>• Format faktur: RJ-2026-01-0001</li>
-                            </ul>
-                        )}
-                        <a
-                            href={currentOption.templateUrl}
-                            download
-                            className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-light mt-3 font-bold"
-                        >
-                            <span className="material-symbols-outlined text-sm">download</span>
-                            Download Template {currentOption.label}
-                        </a>
-                    </div>
+                    {currentDocType && (
+                        <div className="bg-primary/20 rounded-xl p-4 border border-primary/30">
+                            <h5 className="text-xs font-bold text-primary uppercase mb-2">
+                                Template {currentDocType.name}
+                            </h5>
+                            <p className="text-xs text-white/60 mb-2">
+                                {currentDocType.description || `Template untuk upload data ${currentDocType.name}`}
+                            </p>
+                            {currentDocType.deadline && (
+                                <p className="text-xs text-yellow-400 mb-2">
+                                    <span className="material-symbols-outlined text-sm align-middle mr-1">schedule</span>
+                                    Deadline upload: {currentDocType.deadline.display} WIB
+                                </p>
+                            )}
+                            <button
+                                onClick={() => handleDownloadTemplate(currentDocType.slug)}
+                                disabled={isDownloadingTemplate === currentDocType.slug}
+                                className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-light mt-1 font-bold disabled:opacity-50"
+                            >
+                                <span className="material-symbols-outlined text-sm">
+                                    {isDownloadingTemplate === currentDocType.slug ? "progress_activity" : "download"}
+                                </span>
+                                Download Template {currentDocType.name}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* File Preview & Data Preview */}
-            {selectedFile && (
+            {selectedFile && currentDocType && (
                 <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <h3 className="text-lg font-bold text-white">File Queue</h3>
                             <span className="px-2 py-1 rounded-lg bg-primary/20 text-primary text-xs font-bold">
-                                {currentOption.label}
+                                {currentDocType.name}
                             </span>
                         </div>
                         <button
@@ -343,191 +488,7 @@ export default function UploadPage() {
                         </button>
                     </div>
 
-                    <FilePreview file={selectedFile} rowCount={15420} onRemove={handleRemoveFile} />
-
-                    {/* Data Preview Table */}
-                    <div>
-                        <h4 className="text-sm font-semibold text-white mb-3">Data Preview</h4>
-                        <div className="w-full overflow-x-auto rounded-lg border border-white/5 bg-black/20">
-                            {selectedDataType === "retur" ? (
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-white/10 bg-white/5">
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Row
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Sales Invoice
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Posting Date
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Kategori
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Area
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider text-right">
-                                                Selling Amount
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider text-right">
-                                                Buying Amount
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="text-sm text-white/80">
-                                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">1</td>
-                                            <td className="px-4 py-3 font-mono">RJ-2025-12-0001</td>
-                                            <td className="px-4 py-3">2025-12-03</td>
-                                            <td className="px-4 py-3">HDP</td>
-                                            <td className="px-4 py-3">
-                                                <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-xs font-bold">
-                                                    CABANG
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 1,540,725</td>
-                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 1,441,477</td>
-                                        </tr>
-                                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">2</td>
-                                            <td className="px-4 py-3 font-mono">RJ-2025-12-0002</td>
-                                            <td className="px-4 py-3">2025-12-11</td>
-                                            <td className="px-4 py-3">PLASTIC</td>
-                                            <td className="px-4 py-3">
-                                                <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs font-bold">
-                                                    LOCAL
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 870,000</td>
-                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 603,098</td>
-                                        </tr>
-                                        <tr className="hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">...</td>
-                                            <td className="px-4 py-3 text-white/30 italic" colSpan={6}>
-                                                Previewing 2 of 15,420 rows
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            ) : selectedDataType === "penjualan" ? (
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-white/10 bg-white/5">
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Row
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Tanggal
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Lokasi
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Kategori
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider text-right">
-                                                Amount
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="text-sm text-white/80">
-                                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">1</td>
-                                            <td className="px-4 py-3">2026-01-21</td>
-                                            <td className="px-4 py-3">
-                                                <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs font-bold">
-                                                    LOCAL-BGR
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">BAHAN KIMIA</td>
-                                            <td className="px-4 py-3 text-right font-mono">Rp 25,000,000</td>
-                                        </tr>
-                                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">2</td>
-                                            <td className="px-4 py-3">2026-01-21</td>
-                                            <td className="px-4 py-3">
-                                                <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-xs font-bold">
-                                                    CABANG-JKT
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">FURNITURE</td>
-                                            <td className="px-4 py-3 text-right font-mono">Rp 45,000,000</td>
-                                        </tr>
-                                        <tr className="hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">...</td>
-                                            <td className="px-4 py-3 text-white/30 italic" colSpan={4}>
-                                                Previewing 2 of 15,420 rows
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            ) : (
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-white/10 bg-white/5">
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Row
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Tanggal
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Lokasi
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider">
-                                                Kategori
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider text-right">
-                                                Omzet
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider text-right">
-                                                HPP
-                                            </th>
-                                            <th className="px-4 py-3 text-xs font-bold text-white/50 uppercase tracking-wider text-right">
-                                                Gross Margin
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="text-sm text-white/80">
-                                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">1</td>
-                                            <td className="px-4 py-3">2026-01-21</td>
-                                            <td className="px-4 py-3">
-                                                <span className="bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded text-xs font-bold">
-                                                    LOCAL-BGR
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">BAHAN KIMIA</td>
-                                            <td className="px-4 py-3 text-right font-mono">Rp 25,000,000</td>
-                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 18,750,000</td>
-                                            <td className="px-4 py-3 text-right font-mono text-green-400">Rp 6,250,000</td>
-                                        </tr>
-                                        <tr className="border-b border-white/5 hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">2</td>
-                                            <td className="px-4 py-3">2026-01-21</td>
-                                            <td className="px-4 py-3">
-                                                <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-xs font-bold">
-                                                    CABANG-JKT
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">FURNITURE</td>
-                                            <td className="px-4 py-3 text-right font-mono">Rp 45,000,000</td>
-                                            <td className="px-4 py-3 text-right font-mono text-red-400">Rp 35,100,000</td>
-                                            <td className="px-4 py-3 text-right font-mono text-green-400">Rp 9,900,000</td>
-                                        </tr>
-                                        <tr className="hover:bg-white/5 transition-colors">
-                                            <td className="px-4 py-3 font-mono text-xs text-white/40">...</td>
-                                            <td className="px-4 py-3 text-white/30 italic" colSpan={6}>
-                                                Previewing 2 of 15,420 rows
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            )}
-                        </div>
-                    </div>
+                    <FilePreview file={selectedFile} onRemove={handleRemoveFile} />
 
                     {/* Upload Button */}
                     <div className="flex justify-end pt-2">
@@ -544,7 +505,7 @@ export default function UploadPage() {
                             ) : (
                                 <>
                                     <span className="material-symbols-outlined">upload</span>
-                                    <span>Upload {currentOption.label}</span>
+                                    <span>Upload {currentDocType.name}</span>
                                 </>
                             )}
                         </button>

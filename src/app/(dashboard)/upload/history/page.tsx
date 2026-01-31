@@ -21,16 +21,30 @@ interface Meta {
   totalPages: number;
 }
 
-const TYPE_LABELS: Record<string, string> = {
+// DocType from viewable API
+interface ViewableDocType {
+  id: number;
+  name: string;
+  slug: string;
+  tableName: string;
+  icon: string | null;
+  description: string | null;
+}
+
+// Legacy type labels (fallback)
+const LEGACY_TYPE_LABELS: Record<string, string> = {
   OMZET: "Penjualan",
   GROSS_MARGIN: "Gross Margin",
   RETUR: "Retur",
 };
 
+// Predefined colors for DocTypes
 const TYPE_COLORS: Record<string, string> = {
   OMZET: "bg-emerald-500/20 text-emerald-300",
   GROSS_MARGIN: "bg-blue-500/20 text-blue-300",
   RETUR: "bg-red-500/20 text-red-300",
+  // Default colors for new DocTypes
+  DEFAULT: "bg-purple-500/20 text-purple-300",
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -72,6 +86,39 @@ export default function UploadHistoryPage() {
   const [filterType, setFilterType] = useState("all");
   const [page, setPage] = useState(1);
 
+  // DocTypes state
+  const [docTypes, setDocTypes] = useState<ViewableDocType[]>([]);
+  const [docTypesLoading, setDocTypesLoading] = useState(true);
+
+  // Fetch DocTypes for filter options
+  const fetchDocTypes = useCallback(async () => {
+    try {
+      setDocTypesLoading(true);
+      const response = await fetch('/api/doctype/viewable');
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setDocTypes(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching DocTypes:', error);
+    } finally {
+      setDocTypesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDocTypes();
+  }, [fetchDocTypes]);
+
+  // Build type labels from DocTypes
+  const typeLabels: Record<string, string> = { ...LEGACY_TYPE_LABELS };
+  docTypes.forEach((dt: ViewableDocType) => {
+    // Map slug to upload type format
+    const uploadType = dt.slug.toUpperCase().replace(/-/g, '_');
+    typeLabels[uploadType] = dt.name;
+  });
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -104,6 +151,16 @@ export default function UploadHistoryPage() {
     setPage(1);
   };
 
+  // Get type color
+  const getTypeColor = (uploadType: string): string => {
+    return TYPE_COLORS[uploadType] || TYPE_COLORS.DEFAULT;
+  };
+
+  // Get type label
+  const getTypeLabel = (uploadType: string): string => {
+    return typeLabels[uploadType] || uploadType;
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -116,25 +173,42 @@ export default function UploadHistoryPage() {
         </div>
 
         {/* Filter */}
-        <div className="flex gap-2">
-          {[
-            { value: "all", label: "Semua" },
-            { value: "penjualan", label: "Penjualan" },
-            { value: "gross_margin", label: "Gross Margin" },
-            { value: "retur", label: "Retur" },
-          ].map((option) => (
-            <button
-              key={option.value}
-              onClick={() => handleFilterChange(option.value)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                filterType === option.value
-                  ? "bg-primary text-white"
-                  : "bg-white/5 text-white/70 hover:bg-white/10"
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => handleFilterChange("all")}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              filterType === "all"
+                ? "bg-primary text-white"
+                : "bg-white/5 text-white/70 hover:bg-white/10"
+            }`}
+          >
+            Semua
+          </button>
+          {docTypesLoading ? (
+            // Loading skeleton for filters
+            <>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="px-4 py-2 rounded-lg bg-white/5 animate-pulse w-24 h-9"></div>
+              ))}
+            </>
+          ) : (
+            docTypes.map((dt: ViewableDocType) => (
+              <button
+                key={dt.slug}
+                onClick={() => handleFilterChange(dt.slug)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  filterType === dt.slug
+                    ? "bg-primary text-white"
+                    : "bg-white/5 text-white/70 hover:bg-white/10"
+                }`}
+              >
+                {dt.icon && (
+                  <span className="material-symbols-outlined text-base">{dt.icon}</span>
+                )}
+                {dt.name}
+              </button>
+            ))
+          )}
         </div>
       </div>
 
@@ -225,11 +299,9 @@ export default function UploadHistoryPage() {
                     </td>
                     <td className="py-3 px-4">
                       <span
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          TYPE_COLORS[record.uploadType] || "bg-gray-500/20 text-gray-300"
-                        }`}
+                        className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(record.uploadType)}`}
                       >
-                        {TYPE_LABELS[record.uploadType] || record.uploadType}
+                        {getTypeLabel(record.uploadType)}
                       </span>
                     </td>
                     <td className="py-3 px-4">
