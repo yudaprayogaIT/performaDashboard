@@ -19,10 +19,7 @@ import {
   calculateComparison,
   calculateCalendarComparison,
 } from "@/lib/mock-data-daily";
-import {
-  aggregateDataByPeriod,
-  getChartTitle,
-} from "@/lib/data-aggregator";
+import { aggregateDataByPeriod, getChartTitle } from "@/lib/data-aggregator";
 
 // Default empty summary for initial state
 const defaultSummary: DashboardSummary = {
@@ -70,7 +67,12 @@ export default function DashboardPage() {
 
   // Sales trend data state (real data from API)
   const [salesTrend, setSalesTrend] = useState<DailySales[]>([]); // Untuk chart (filtered by month)
-  const [salesTrendComparison, setSalesTrendComparison] = useState<DailySales[]>([]); // ✨ Untuk comparison cards (always real-time)
+  const [salesTrendLastMonth, setSalesTrendLastMonth] = useState<DailySales[]>(
+    [],
+  ); // Untuk chart bulan lalu
+  const [salesTrendComparison, setSalesTrendComparison] = useState<
+    DailySales[]
+  >([]); // ✨ Untuk comparison cards (always real-time)
 
   // Last update timestamps
   const [lastUpdate, setLastUpdate] = useState<{
@@ -153,9 +155,7 @@ export default function DashboardPage() {
     const fetchSalesTrendComparison = async () => {
       try {
         // Always fetch last 90 days for comparisons (to cover weekly/monthly comparisons)
-        const response = await fetch(
-          `/api/analytics/sales-trend?days=90`
-        );
+        const response = await fetch(`/api/analytics/sales-trend?days=90`);
         const result = await response.json();
         if (result.success) {
           setSalesTrendComparison(result.data);
@@ -166,7 +166,7 @@ export default function DashboardPage() {
     };
 
     fetchSalesTrendComparison();
-    
+
     // Optional: Refresh every 5 minutes to keep comparison data fresh
     const interval = setInterval(fetchSalesTrendComparison, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -178,7 +178,7 @@ export default function DashboardPage() {
       try {
         // Fetch data based on selected period, month, and year
         const response = await fetch(
-          `/api/analytics/sales-trend?period=${selectedPeriod}&month=${selectedMonth}&year=${selectedYear}`
+          `/api/analytics/sales-trend?period=${selectedPeriod}&month=${selectedMonth}&year=${selectedYear}`,
         );
         const result = await response.json();
         if (result.success) {
@@ -190,7 +190,34 @@ export default function DashboardPage() {
     };
 
     fetchSalesTrend();
-  }, [selectedPeriod, selectedMonth, selectedYear]); 
+  }, [selectedPeriod, selectedMonth, selectedYear]);
+
+  // Fetch sales trend data for LAST MONTH (for comparison chart)
+  useEffect(() => {
+    const fetchSalesTrendLastMonth = async () => {
+      try {
+        // Calculate last month
+        let lastMonth = selectedMonth - 1;
+        let lastMonthYear = selectedYear;
+        if (lastMonth === 0) {
+          lastMonth = 12;
+          lastMonthYear = selectedYear - 1;
+        }
+
+        const response = await fetch(
+          `/api/analytics/sales-trend?period=${selectedPeriod}&month=${lastMonth}&year=${lastMonthYear}`,
+        );
+        const result = await response.json();
+        if (result.success) {
+          setSalesTrendLastMonth(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching last month sales trend:", error);
+      }
+    };
+
+    fetchSalesTrendLastMonth();
+  }, [selectedPeriod, selectedMonth, selectedYear]);
 
   // Auto-exit presentation mode when fullscreen is exited (e.g., via ESC key)
   useEffect(() => {
@@ -204,6 +231,23 @@ export default function DashboardPage() {
     if (salesTrend.length === 0) return [];
     return aggregateDataByPeriod(salesTrend, selectedPeriod);
   }, [salesTrend, selectedPeriod]);
+
+  // Aggregate data for last month (for comparison chart)
+  const aggregatedDataLastMonth = useMemo(() => {
+    if (salesTrendLastMonth.length === 0) return [];
+    return aggregateDataByPeriod(salesTrendLastMonth, selectedPeriod);
+  }, [salesTrendLastMonth, selectedPeriod]);
+
+  // Helper to get last month name
+  const getLastMonthInfo = useMemo(() => {
+    let lastMonth = selectedMonth - 1;
+    let lastMonthYear = selectedYear;
+    if (lastMonth === 0) {
+      lastMonth = 12;
+      lastMonthYear = selectedYear - 1;
+    }
+    return { month: lastMonth, year: lastMonthYear };
+  }, [selectedMonth, selectedYear]);
 
   // ✨ UPDATED: All comparisons now use salesTrendComparison (real-time data)
   // Daily comparison (yesterday vs day before yesterday) - using COMPARISON data
@@ -223,7 +267,12 @@ export default function DashboardPage() {
     [salesTrendComparison],
   );
   const grossMarginWeekly = useMemo(
-    () => calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "weekly"),
+    () =>
+      calculateCalendarComparison(
+        salesTrendComparison,
+        "totalGrossMargin",
+        "weekly",
+      ),
     [salesTrendComparison],
   );
 
@@ -234,29 +283,43 @@ export default function DashboardPage() {
   );
   const grossMarginMonthly = useMemo(
     () =>
-      calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "monthly"),
+      calculateCalendarComparison(
+        salesTrendComparison,
+        "totalGrossMargin",
+        "monthly",
+      ),
     [salesTrendComparison],
   );
 
   // Quarterly comparison (current quarter vs previous quarter)
   const comparisonQuarterly = useMemo(
-    () => calculateCalendarComparison(salesTrendComparison, "total", "quarterly"),
+    () =>
+      calculateCalendarComparison(salesTrendComparison, "total", "quarterly"),
     [salesTrendComparison],
   );
   const grossMarginQuarterly = useMemo(
     () =>
-      calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "quarterly"),
+      calculateCalendarComparison(
+        salesTrendComparison,
+        "totalGrossMargin",
+        "quarterly",
+      ),
     [salesTrendComparison],
   );
 
   // Semester comparison (current semester vs previous semester)
   const comparisonSemester = useMemo(
-    () => calculateCalendarComparison(salesTrendComparison, "total", "semester"),
+    () =>
+      calculateCalendarComparison(salesTrendComparison, "total", "semester"),
     [salesTrendComparison],
   );
   const grossMarginSemester = useMemo(
     () =>
-      calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "semester"),
+      calculateCalendarComparison(
+        salesTrendComparison,
+        "totalGrossMargin",
+        "semester",
+      ),
     [salesTrendComparison],
   );
 
@@ -266,7 +329,12 @@ export default function DashboardPage() {
     [salesTrendComparison],
   );
   const grossMarginYearly = useMemo(
-    () => calculateCalendarComparison(salesTrendComparison, "totalGrossMargin", "yearly"),
+    () =>
+      calculateCalendarComparison(
+        salesTrendComparison,
+        "totalGrossMargin",
+        "yearly",
+      ),
     [salesTrendComparison],
   );
 
@@ -464,14 +532,15 @@ export default function DashboardPage() {
         </div>
       </div>,
 
-      // Section 3: Trend Chart
+      // Section 3: Trend Chart - Current Month
       <div key="trends" className="space-y-6">
         <div>
           <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
             <span className="material-symbols-outlined text-primary text-5xl">
               insights
             </span>
-            Trend Penjualan - {getChartTitle(selectedPeriod, selectedMonth, selectedYear)}
+            Trend Penjualan -{" "}
+            {getChartTitle(selectedPeriod, selectedMonth, selectedYear)}
           </h1>
         </div>
         <TrendChart
@@ -481,13 +550,60 @@ export default function DashboardPage() {
           showCabang={true}
           showTotal={true}
         />
+
+        <div>
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+            <span className="material-symbols-outlined text-primary text-5xl">
+              history
+            </span>
+            Trend Penjualan -{" "}
+            {getChartTitle(
+              selectedPeriod,
+              getLastMonthInfo.month,
+              getLastMonthInfo.year,
+            )}{" "}
+            (Bulan Lalu)
+          </h1>
+        </div>
+        <TrendChart
+          data={aggregatedDataLastMonth}
+          title=""
+          showLocal={true}
+          showCabang={true}
+          showTotal={true}
+        />
       </div>,
+
+      // Section 3b: Trend Chart - Last Month (for comparison)
+      // <div key="trends-last-month" className="space-y-6">
+      //   <div>
+      //     <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
+      //       <span className="material-symbols-outlined text-primary text-5xl">
+      //         history
+      //       </span>
+      //       Trend Penjualan -{" "}
+      //       {getChartTitle(
+      //         selectedPeriod,
+      //         getLastMonthInfo.month,
+      //         getLastMonthInfo.year,
+      //       )}{" "}
+      //       (Bulan Lalu)
+      //     </h1>
+      //   </div>
+      //   <TrendChart
+      //     data={aggregatedDataLastMonth}
+      //     title=""
+      //     showLocal={true}
+      //     showCabang={true}
+      //     showTotal={true}
+      //   />
+      // </div>,
 
       // Section 4: LOCAL Achievement (All Categories)
       <div key="local-achievement" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            LOCAL Achievement (Bogor & Sekitar)
+            LOCAL Achievement
           </h1>
         </div>
         <CategoryAchievementPie categories={categories} type="local" title="" />
@@ -497,7 +613,7 @@ export default function DashboardPage() {
       <div key="cabang-achievement" className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            CABANG Achievement (Luar Bogor)
+            CABANG Achievement
           </h1>
         </div>
         <CategoryAchievementPie
@@ -509,6 +625,8 @@ export default function DashboardPage() {
     ],
     [
       aggregatedData,
+      aggregatedDataLastMonth,
+      getLastMonthInfo,
       selectedPeriod,
       selectedMonth,
       selectedYear,
@@ -737,10 +855,25 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Overall Trend */}
+          {/* Overall Trend - Current Month */}
           <TrendChart
             data={aggregatedData}
             title={getChartTitle(selectedPeriod, selectedMonth, selectedYear)}
+            showLocal={true}
+            showCabang={true}
+            showTotal={true}
+          />
+
+          {/* Overall Trend - Last Month (for comparison) */}
+          <TrendChart
+            data={aggregatedDataLastMonth}
+            title={
+              getChartTitle(
+                selectedPeriod,
+                getLastMonthInfo.month,
+                getLastMonthInfo.year,
+              ) + " (Bulan Lalu)"
+            }
             showLocal={true}
             showCabang={true}
             showTotal={true}
@@ -777,7 +910,7 @@ export default function DashboardPage() {
         sections={carouselSections}
         isActive={isPresentationMode}
         onExit={handleExitPresentationMode}
-        autoPlayInterval={10000}
+        autoPlayInterval={15000}
       />
     </>
   );

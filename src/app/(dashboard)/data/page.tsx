@@ -52,6 +52,11 @@ interface Summary {
   avgMarginPercent?: number;
   totalSellingAmount?: number;
   totalBuyingAmount?: number;
+  // Gross margin latest day
+  latestDate?: string;
+  latestDayMargin?: number;
+  latestDayOmzet?: number;
+  latestDayMarginPercent?: number;
 }
 
 const MONTHS = [
@@ -179,23 +184,49 @@ export default function DataReviewPage() {
 
     if (activeType === "gross_margin") {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Records</p>
-            <p className="text-2xl font-bold text-white">{formatCurrency(summary.totalRecords || 0)}</p>
+        <div className="space-y-4">
+          {/* Monthly Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Total Records</p>
+              <p className="text-2xl font-bold text-white">{formatCurrency(summary.totalRecords || 0)}</p>
+            </div>
+            <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
+              <p className="text-xs text-blue-300 uppercase tracking-wider mb-1">Total Omzet</p>
+              <p className="text-2xl font-bold text-white">Rp {formatCurrency(summary.totalOmzet || 0)}</p>
+              <p className="text-xs text-white/40 mt-1">Akumulasi sebulan</p>
+            </div>
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+              <p className="text-xs text-emerald-300 uppercase tracking-wider mb-1">Total Margin</p>
+              <p className="text-2xl font-bold text-white">Rp {formatCurrency(summary.totalMargin || 0)}</p>
+              <p className="text-xs text-white/40 mt-1">Akumulasi sebulan</p>
+            </div>
+            <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+              <p className="text-xs text-purple-300 uppercase tracking-wider mb-1">Avg Margin %</p>
+              <p className="text-2xl font-bold text-white">{formatPercent(summary.avgMarginPercent || 0)}</p>
+            </div>
           </div>
-          <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-4">
-            <p className="text-xs text-blue-300 uppercase tracking-wider mb-1">Total Omzet</p>
-            <p className="text-2xl font-bold text-white">Rp {formatCurrency(summary.totalOmzet || 0)}</p>
-          </div>
-          <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-            <p className="text-xs text-emerald-300 uppercase tracking-wider mb-1">Total Margin</p>
-            <p className="text-2xl font-bold text-white">Rp {formatCurrency(summary.totalMargin || 0)}</p>
-          </div>
-          <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
-            <p className="text-xs text-purple-300 uppercase tracking-wider mb-1">Avg Margin %</p>
-            <p className="text-2xl font-bold text-white">{formatPercent(summary.avgMarginPercent || 0)}</p>
-          </div>
+
+          {/* Latest Day Stats */}
+          {summary.latestDate && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+                <p className="text-xs text-amber-300 uppercase tracking-wider mb-1">Tanggal Terakhir</p>
+                <p className="text-2xl font-bold text-white">{formatDate(summary.latestDate)}</p>
+                <p className="text-xs text-white/40 mt-1">Data terakhir di bulan ini</p>
+              </div>
+              <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/10 p-4">
+                <p className="text-xs text-cyan-300 uppercase tracking-wider mb-1">Margin Hari Itu</p>
+                <p className="text-2xl font-bold text-white">Rp {formatCurrency(summary.latestDayMargin || 0)}</p>
+                <p className="text-xs text-white/40 mt-1">Total margin di {formatDate(summary.latestDate)}</p>
+              </div>
+              <div className="rounded-xl border border-pink-500/30 bg-pink-500/10 p-4">
+                <p className="text-xs text-pink-300 uppercase tracking-wider mb-1">Margin % Hari Itu</p>
+                <p className="text-2xl font-bold text-white">{formatPercent(summary.latestDayMarginPercent || 0)}</p>
+                <p className="text-xs text-white/40 mt-1">Persentase margin di {formatDate(summary.latestDate)}</p>
+              </div>
+            </div>
+          )}
         </div>
       );
     }

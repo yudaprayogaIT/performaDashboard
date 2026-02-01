@@ -160,6 +160,32 @@ export async function GET(request: NextRequest) {
         _count: true,
       });
 
+      // Get latest date data (margin for the most recent day in the month)
+      const latestRecord = await prisma.grossMargin.findFirst({
+        where: whereClause,
+        orderBy: { recordDate: "desc" },
+        select: { recordDate: true },
+      });
+
+      let latestDayMargin = 0;
+      let latestDayOmzet = 0;
+      let latestDate: Date | null = null;
+
+      if (latestRecord) {
+        latestDate = latestRecord.recordDate;
+        // Get sum for that specific date
+        const latestDayWhereClause = {
+          ...whereClause,
+          recordDate: latestRecord.recordDate,
+        };
+        const latestDayData = await prisma.grossMargin.aggregate({
+          where: latestDayWhereClause,
+          _sum: { marginAmount: true, omzetAmount: true },
+        });
+        latestDayMargin = Number(latestDayData._sum.marginAmount || 0);
+        latestDayOmzet = Number(latestDayData._sum.omzetAmount || 0);
+      }
+
       data = grossMargins.map((gm) => ({
         id: Number(gm.id),
         date: gm.recordDate,
@@ -180,6 +206,10 @@ export async function GET(request: NextRequest) {
         totalHpp: Number(summaryData._sum.hppAmount || 0),
         totalMargin,
         avgMarginPercent: totalOmzet > 0 ? (totalMargin / totalOmzet) * 100 : 0,
+        latestDate,
+        latestDayMargin,
+        latestDayOmzet,
+        latestDayMarginPercent: latestDayOmzet > 0 ? (latestDayMargin / latestDayOmzet) * 100 : 0,
       };
     } else if (type === "retur") {
       // Build where clause for Retur
