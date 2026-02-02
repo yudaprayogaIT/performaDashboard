@@ -3,6 +3,7 @@
 import { useState } from "react";
 import FileUploader from "@/components/upload/file-uploader";
 import FilePreview from "@/components/upload/file-preview";
+import { useDataRefresh, type RefreshEvent } from "@/hooks/useDataRefresh";
 
 // Data type options
 type DataType = "penjualan" | "gross_margin" | "retur";
@@ -52,6 +53,13 @@ const dataTypeOptions: {
     },
 ];
 
+// Map data types to refresh event types
+const dataTypeToRefreshType: Record<DataType, RefreshEvent["type"]> = {
+    penjualan: "OMZET",
+    gross_margin: "GROSS_MARGIN",
+    retur: "RETUR",
+};
+
 export default function UploadPage() {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -63,6 +71,9 @@ export default function UploadPage() {
         title: '',
         message: '',
     });
+
+    // Hook to trigger dashboard refresh after upload
+    const { triggerRefresh } = useDataRefresh();
 
     const currentOption = dataTypeOptions.find((opt) => opt.value === selectedDataType)!;
 
@@ -105,6 +116,9 @@ export default function UploadPage() {
             const result = await response.json();
 
             if (result.success) {
+                // Trigger dashboard refresh
+                triggerRefresh(dataTypeToRefreshType[selectedDataType], "upload-page");
+
                 // Show success modal
                 setModal({
                     isOpen: true,

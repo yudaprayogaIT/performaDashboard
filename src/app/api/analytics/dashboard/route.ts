@@ -184,22 +184,24 @@ export async function GET(request: NextRequest) {
     };
 
     // Get last upload timestamps for each data type
+    // Using createdAt as primary sort (always set by Prisma default)
+    // with processedAt as fallback in case of null values
     const lastOmzetUpload = await prisma.salesUpload.findFirst({
       where: { uploadType: "OMZET", status: "SUCCESS" },
-      orderBy: { processedAt: "desc" },
-      select: { processedAt: true },
+      orderBy: { createdAt: "desc" },
+      select: { processedAt: true, createdAt: true },
     });
 
     const lastGrossMarginUpload = await prisma.salesUpload.findFirst({
       where: { uploadType: "GROSS_MARGIN", status: "SUCCESS" },
-      orderBy: { processedAt: "desc" },
-      select: { processedAt: true },
+      orderBy: { createdAt: "desc" },
+      select: { processedAt: true, createdAt: true },
     });
 
     const lastReturUpload = await prisma.salesUpload.findFirst({
       where: { uploadType: "RETUR", status: "SUCCESS" },
-      orderBy: { processedAt: "desc" },
-      select: { processedAt: true },
+      orderBy: { createdAt: "desc" },
+      select: { processedAt: true, createdAt: true },
     });
 
     const lastTargetUpdate = await prisma.target.findFirst({
@@ -219,9 +221,9 @@ export async function GET(request: NextRequest) {
         categoryCount: categories.length,
       },
       lastUpdate: {
-        omzet: lastOmzetUpload?.processedAt || null,
-        grossMargin: lastGrossMarginUpload?.processedAt || null,
-        retur: lastReturUpload?.processedAt || null,
+        omzet: lastOmzetUpload?.processedAt || lastOmzetUpload?.createdAt || null,
+        grossMargin: lastGrossMarginUpload?.processedAt || lastGrossMarginUpload?.createdAt || null,
+        retur: lastReturUpload?.processedAt || lastReturUpload?.createdAt || null,
         target: lastTargetUpdate?.updatedAt || null,
       },
     });

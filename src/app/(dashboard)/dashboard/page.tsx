@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import StatsCard from "@/components/dashboard/stats-card";
 import CategoryTable from "@/components/dashboard/category-table";
 import MonthFilter from "@/components/dashboard/month-filter";
@@ -13,6 +13,7 @@ import PeriodSelector, {
   type PeriodType,
 } from "@/components/dashboard/period-selector";
 import { useFullscreen } from "@/hooks/useFullscreen";
+import { useDataRefresh } from "@/hooks/useDataRefresh";
 import type { CategorySales, DashboardSummary } from "@/types/sales";
 import type { DailySales } from "@/lib/mock-data-daily";
 import {
@@ -88,43 +89,43 @@ export default function DashboardPage() {
   });
 
   // Fetch dashboard data (targets and sales)
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(
-          `/api/analytics/dashboard?year=${selectedYear}&month=${selectedMonth}`,
-        );
-        const result = await response.json();
-        if (result.success) {
-          setCategories(result.data.categories);
-          setSummary(result.data.summary);
-          if (result.lastUpdate) {
-            setLastUpdate({
-              omzet: result.lastUpdate.omzet
-                ? new Date(result.lastUpdate.omzet)
-                : null,
-              grossMargin: result.lastUpdate.grossMargin
-                ? new Date(result.lastUpdate.grossMargin)
-                : null,
-              retur: result.lastUpdate.retur
-                ? new Date(result.lastUpdate.retur)
-                : null,
-              target: result.lastUpdate.target
-                ? new Date(result.lastUpdate.target)
-                : null,
-            });
-          }
+  const fetchDashboardData = useCallback(async (showLoading = true) => {
+    if (showLoading) setIsLoading(true);
+    try {
+      const response = await fetch(
+        `/api/analytics/dashboard?year=${selectedYear}&month=${selectedMonth}`,
+      );
+      const result = await response.json();
+      if (result.success) {
+        setCategories(result.data.categories);
+        setSummary(result.data.summary);
+        if (result.lastUpdate) {
+          setLastUpdate({
+            omzet: result.lastUpdate.omzet
+              ? new Date(result.lastUpdate.omzet)
+              : null,
+            grossMargin: result.lastUpdate.grossMargin
+              ? new Date(result.lastUpdate.grossMargin)
+              : null,
+            retur: result.lastUpdate.retur
+              ? new Date(result.lastUpdate.retur)
+              : null,
+            target: result.lastUpdate.target
+              ? new Date(result.lastUpdate.target)
+              : null,
+          });
         }
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchDashboardData();
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      if (showLoading) setIsLoading(false);
+    }
   }, [selectedYear, selectedMonth]);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
   // Fetch retur data
   useEffect(() => {
@@ -225,6 +226,45 @@ export default function DashboardPage() {
       setIsPresentationMode(false);
     }
   }, [isFullscreen, isPresentationMode]);
+
+  // Listen for data refresh events (triggered by upload page)
+  useDataRefresh({
+    onRefresh: (event) => {
+      console.log("Dashboard auto-refresh triggered:", event.type);
+      // Refresh all relevant data
+      fetchDashboardData(false); // false = don't show loading spinner
+
+      // Also refresh sales trend data
+      fetch(`/api/analytics/sales-trend?days=90`)
+        .then((res) => res.json())
+        .then((result) => {
+          if (result.success) setSalesTrendComparison(result.data);
+        });
+
+      fetch(`/api/analytics/sales-trend?period=${selectedPeriod}&month=${selectedMonth}&year=${selectedYear}`)
+        .then((res) => res.json())
+        .then((result) => {
+          if (result.success) setSalesTrend(result.data);
+        });
+
+      // Refresh retur data if retur was uploaded
+      if (event.type === "RETUR" || event.type === "ALL") {
+        fetch(`/api/analytics/retur?month=${selectedMonth}&year=${selectedYear}`)
+          .then((res) => res.json())
+          .then((result) => {
+            if (result.success) {
+              setReturData({
+                ...result.data,
+                lastUpdate: result.data.lastUpdate
+                  ? new Date(result.data.lastUpdate)
+                  : null,
+              });
+            }
+          });
+      }
+    },
+    types: ["OMZET", "GROSS_MARGIN", "RETUR", "ALL"],
+  });
 
   // Aggregate data by selected period using real data (for chart)
   const aggregatedData = useMemo(() => {

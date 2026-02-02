@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate date range
     const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0); // Last day of month
+    const endDate = new Date(year, month, 0, 23, 59, 59, 999); // Last day of month with end of day time
 
     const skip = (page - 1) * limit;
 
